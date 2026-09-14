@@ -28,6 +28,20 @@
 				<category android:name="android.intent.category.BROWSABLE" />
 				<data android:scheme="pixiv" android:host="account" android:path="/login" />
 			</intent-filter>
+			<!-- pixiv.net links to a work or an artist can open in Mokona. -->
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
+				<data android:scheme="https" />
+				<data android:host="www.pixiv.net" />
+				<data android:host="pixiv.net" />
+				<data android:pathPrefix="/artworks/" />
+				<data android:pathPrefix="/users/" />
+				<data android:pathPrefix="/en/artworks/" />
+				<data android:pathPrefix="/en/users/" />
+				<data android:pathPrefix="/member_illust.php" />
+			</intent-filter>
 		</activity>
 	</application>
 

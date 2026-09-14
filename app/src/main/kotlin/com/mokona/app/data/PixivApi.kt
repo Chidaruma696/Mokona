@@ -69,26 +69,54 @@ object PixivApi {
 		return b.build()
 	}
 
+	private fun form(vararg fields: Pair<String, String?>): FormBody {
+		val b = FormBody.Builder()
+		for ((k, v) in fields) if (v != null) b.add(k, v)
+		return b.build()
+	}
+
 	private suspend fun illusts(url: HttpUrl): IllustsPage = json.decodeFromString(call(url))
+	private suspend fun users(url: HttpUrl): UsersPage = json.decodeFromString(call(url))
+
+	// ---- works
 
 	suspend fun recommended(): IllustsPage =
 		illusts(url("v1/illust/recommended", "include_ranking_illusts" to "true", "include_privacy_policy" to "true"))
 
+	/** New works from the people the user follows. */
+	suspend fun followIllusts(restrict: Restrict = Restrict.PUBLIC): IllustsPage =
+		illusts(url("v2/illust/follow", "restrict" to restrict.id))
+
 	suspend fun ranking(mode: String, date: String? = null): IllustsPage =
 		illusts(url("v1/illust/ranking", "mode" to mode, "date" to date))
 
-	suspend fun search(word: String, sort: String = "date_desc"): IllustsPage =
-		illusts(url("v1/search/illust", "word" to word, "search_target" to "partial_match_for_tags", "sort" to sort))
+	suspend fun search(
+		word: String,
+		sort: SearchSort = SearchSort.DATE_DESC,
+		target: SearchTarget = SearchTarget.PARTIAL_TAGS,
+		duration: SearchDuration = SearchDuration.ALL,
+	): IllustsPage = illusts(
+		url(
+			"v1/search/illust",
+			"word" to word, "search_target" to target.id, "sort" to sort.id, "duration" to duration.id,
+			"merge_plain_keyword_results" to "true", "include_translated_tag_results" to "true",
+		),
+	)
 
 	suspend fun related(illustId: Long): IllustsPage = illusts(url("v2/illust/related", "illust_id" to illustId.toString()))
 
-	suspend fun userIllusts(userId: Long): IllustsPage =
-		illusts(url("v1/user/illusts", "user_id" to userId.toString(), "type" to "illust"))
+	suspend fun userIllusts(userId: Long, type: String = "illust"): IllustsPage =
+		illusts(url("v1/user/illusts", "user_id" to userId.toString(), "type" to type))
 
-	suspend fun bookmarks(userId: Long): IllustsPage =
-		illusts(url("v1/user/bookmarks/illust", "user_id" to userId.toString(), "restrict" to "public"))
+	suspend fun bookmarks(userId: Long, restrict: Restrict = Restrict.PUBLIC, tag: String? = null): IllustsPage =
+		illusts(url("v1/user/bookmarks/illust", "user_id" to userId.toString(), "restrict" to restrict.id, "tag" to tag))
 
-	/** The next page of any list: Pixiv hands back the full URL. */
+	suspend fun bookmarkTags(userId: Long, restrict: Restrict = Restrict.PUBLIC): List<BookmarkTag> =
+		json.decodeFromString<BookmarkTagsPage>(call(url("v1/user/bookmark-tags/illust", "user_id" to userId.toString(), "restrict" to restrict.id))).bookmarkTags
+
+	suspend fun history(): IllustsPage = illusts(url("v1/user/browsing-history/illusts"))
+
+	/** The next page of any list of works: Pixiv hands back the full URL. */
 	suspend fun nextPage(nextUrl: String): IllustsPage = illusts(nextUrl.toHttpUrl())
 
 	suspend fun detail(illustId: Long): Illust =
@@ -97,12 +125,54 @@ object PixivApi {
 	suspend fun trendingTags(): List<TrendTag> =
 		json.decodeFromString<TrendTags>(call(url("v1/trending-tags/illust"))).trendTags
 
-	suspend fun bookmark(illustId: Long, add: Boolean) {
-		val form = FormBody.Builder().add("illust_id", illustId.toString()).apply { if (add) add("restrict", "public") }.build()
-		call(url(if (add) "v2/illust/bookmark/add" else "v1/illust/bookmark/delete"), form)
+	suspend fun autocomplete(word: String): List<Tag> =
+		json.decodeFromString<AutocompleteResponse>(
+			call(url("v2/search/autocomplete", "word" to word, "merge_plain_keyword_results" to "true", "include_translated_tag_results" to "true")),
+		).tags
+
+	suspend fun bookmark(illustId: Long, add: Boolean, restrict: Restrict = Restrict.PUBLIC) {
+		if (add) call(url("v2/illust/bookmark/add"), form("illust_id" to illustId.toString(), "restrict" to restrict.id))
+		else call(url("v1/illust/bookmark/delete"), form("illust_id" to illustId.toString()))
 	}
 
-	/** Downloads an original file (needs the Pixiv referer). */
+	suspend fun ugoira(illustId: Long): UgoiraMetadata =
+		json.decodeFromString<UgoiraResponse>(call(url("v1/ugoira/metadata", "illust_id" to illustId.toString()))).ugoiraMetadata
+
+	// ---- comments
+
+	suspend fun comments(illustId: Long): CommentsPage =
+		json.decodeFromString(call(url("v1/illust/comments", "illust_id" to illustId.toString())))
+
+	suspend fun nextComments(nextUrl: String): CommentsPage = json.decodeFromString(call(nextUrl.toHttpUrl()))
+
+	suspend fun addComment(illustId: Long, text: String, parentId: Long? = null) {
+		call(url("v1/illust/comment/add"), form("illust_id" to illustId.toString(), "comment" to text, "parent_comment_id" to parentId?.toString()))
+	}
+
+	// ---- people
+
+	suspend fun userDetail(userId: Long): UserDetail =
+		json.decodeFromString(call(url("v1/user/detail", "user_id" to userId.toString())))
+
+	suspend fun follow(userId: Long, add: Boolean, restrict: Restrict = Restrict.PUBLIC) {
+		if (add) call(url("v1/user/follow/add"), form("user_id" to userId.toString(), "restrict" to restrict.id))
+		else call(url("v1/user/follow/delete"), form("user_id" to userId.toString()))
+	}
+
+	suspend fun following(userId: Long, restrict: Restrict = Restrict.PUBLIC): UsersPage =
+		users(url("v1/user/following", "user_id" to userId.toString(), "restrict" to restrict.id))
+
+	suspend fun followers(userId: Long): UsersPage = users(url("v1/user/follower", "user_id" to userId.toString()))
+
+	suspend fun recommendedUsers(): UsersPage = users(url("v1/user/recommended"))
+
+	suspend fun searchUsers(word: String): UsersPage = users(url("v1/search/user", "word" to word))
+
+	suspend fun nextUsers(nextUrl: String): UsersPage = users(nextUrl.toHttpUrl())
+
+	// ---- files
+
+	/** Downloads an original file or a ugoira zip (needs the Pixiv referer). */
 	suspend fun download(url: String): ByteArray = withContext(Dispatchers.IO) {
 		val r = client.newCall(Request.Builder().url(url).header("Referer", IMAGE_REFERER).header("User-Agent", userAgent).build()).execute()
 		r.use { if (!it.isSuccessful) throw PixivException(it.code, "download"); it.body.bytes() }
