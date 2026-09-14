@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.edit
+import androidx.core.os.LocaleListCompat
 import com.mokona.app.MokonaApp
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
@@ -14,6 +16,9 @@ object AppPrefs {
 	private const val FILE = "app"
 
 	var onboardingDone by mutableStateOf(false)
+		private set
+	/** "en" (default), "es", or "system" to follow the phone. */
+	var language by mutableStateOf("en")
 		private set
 	/** R-18 and R-18G works. Off by default; the switch lives in Settings › Content. */
 	var showAdult by mutableStateOf(false)
@@ -38,6 +43,7 @@ object AppPrefs {
 	fun init(context: Context) {
 		val p = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 		onboardingDone = p.getBoolean("onboarding_done", false)
+		language = p.getString("language", "en") ?: "en"
 		showAdult = p.getBoolean("show_adult", false)
 		themeMode = runCatching { ThemeMode.valueOf(p.getString("theme_mode", "SYSTEM")!!) }.getOrDefault(ThemeMode.SYSTEM)
 		amoled = p.getBoolean("amoled", false)
@@ -48,6 +54,14 @@ object AppPrefs {
 	}
 
 	private fun prefs() = MokonaApp.appContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+
+	fun updateLanguage(value: String) { language = value; prefs().edit { putString("language", value) }; applyLanguage() }
+
+	/** Makes the app speak the chosen language; recreates the activity when it changes. */
+	fun applyLanguage() {
+		val want = if (language == "system") LocaleListCompat.getEmptyLocaleList() else LocaleListCompat.forLanguageTags(language)
+		if (AppCompatDelegate.getApplicationLocales() != want) AppCompatDelegate.setApplicationLocales(want)
+	}
 
 	fun setOnboardingDone() { onboardingDone = true; prefs().edit { putBoolean("onboarding_done", true) } }
 	fun updateShowAdult(value: Boolean) { showAdult = value; prefs().edit { putBoolean("show_adult", value) } }

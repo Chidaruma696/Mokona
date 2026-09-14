@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -30,6 +32,13 @@ fun OnboardingScreen(onStart: () -> Unit) {
 	) {
 		Text(stringResource(R.string.onboarding_kicker), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
 		Text(stringResource(R.string.onboarding_title), style = MaterialTheme.typography.headlineMedium)
+		Card {
+			Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+				Text(stringResource(R.string.language), style = MaterialTheme.typography.titleMedium)
+				Text(stringResource(R.string.onboarding_language_body), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+				LanguageChips()
+			}
+		}
 		Text(stringResource(R.string.onboarding_text), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
 		Card {
 			ListItem(
@@ -45,5 +54,15 @@ fun OnboardingScreen(onStart: () -> Unit) {
 		}
 		Text(stringResource(R.string.onboarding_account), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 		Button(onClick = { AppPrefs.setOnboardingDone(); onStart() }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.start)) }
+	}
+}
+
+/** English, Español, or the phone's language. Shared by the first start and Settings. */
+@Composable
+fun LanguageChips() {
+	Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+		FilterChip(selected = AppPrefs.language == "en", onClick = { AppPrefs.updateLanguage("en") }, label = { Text("English") })
+		FilterChip(selected = AppPrefs.language == "es", onClick = { AppPrefs.updateLanguage("es") }, label = { Text("Español") })
+		FilterChip(selected = AppPrefs.language == "system", onClick = { AppPrefs.updateLanguage("system") }, label = { Text(stringResource(R.string.lang_system)) })
 	}
 }

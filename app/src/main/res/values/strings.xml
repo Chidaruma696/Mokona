@@ -120,4 +120,7 @@
 	<string name="series_of">Series: %s</string>
 	<string name="download_video">Download video</string>
 	<string name="saved_video">Video saved to Movies/Mokona</string>
+	<string name="language">Language</string>
+	<string name="lang_system">Phone\'s</string>
+	<string name="onboarding_language_body">Mokona speaks English and Spanish. Leave English or pick one; it can change later in Settings.</string>
 </resources>
