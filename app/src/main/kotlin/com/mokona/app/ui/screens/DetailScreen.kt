@@ -4,6 +4,7 @@ import android.app.WallpaperManager
 import android.content.Intent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -79,6 +81,8 @@ fun DetailScreen(
 	onOpenUser: (PixivUser) -> Unit,
 	onSearchTag: (String) -> Unit,
 	onView: (List<String>, Int) -> Unit,
+	onRead: (Illust) -> Unit,
+	onSeries: (Long) -> Unit,
 	onChanged: (Illust) -> Unit,
 	vm: DetailViewModel = viewModel(key = "detail-$id"),
 ) {
@@ -88,6 +92,7 @@ fun DetailScreen(
 	var snack by remember { mutableStateOf<String?>(null) }
 	var menu by remember { mutableStateOf(false) }
 	val savedText = stringResource(R.string.saved_pages)
+	val savedVideoText = stringResource(R.string.saved_video)
 	val privateText = stringResource(R.string.bookmarked_private)
 
 	if (illust == null) {
@@ -186,10 +191,23 @@ fun DetailScreen(
 					}
 				}
 				Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+					if (illust.pageCount > 1) {
+						Button(onClick = { onRead(illust) }) { Text(stringResource(R.string.read_pages, illust.pageCount)) }
+					}
+					illust.series?.let { s -> TextButton(onClick = { onSeries(s.id) }) { Text(stringResource(R.string.view_series)) } }
+				}
+				Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
 					FilledTonalButton(onClick = { vm.download { n -> snack = savedText.format(n.size) } }, enabled = !vm.downloading) {
 						Text(if (illust.pageCount > 1) stringResource(R.string.download_all, illust.pageCount) else stringResource(R.string.download))
 					}
 					if (vm.downloading) CircularProgressIndicator(Modifier.size(20.dp))
+					if (illust.isAnimated) {
+						FilledTonalButton(onClick = { vm.downloadVideo { snack = savedVideoText } }, enabled = !vm.encoding) { Text(stringResource(R.string.download_video)) }
+						if (vm.encoding) CircularProgressIndicator(Modifier.size(20.dp))
+					}
+				}
+				illust.series?.let { s ->
+					Text(stringResource(R.string.series_of, s.title), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.clickable { onSeries(s.id) })
 				}
 				if (vm.related.isNotEmpty()) {
 					Text(stringResource(R.string.related), style = MaterialTheme.typography.titleMedium)

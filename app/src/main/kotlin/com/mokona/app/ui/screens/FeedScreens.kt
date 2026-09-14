@@ -67,22 +67,23 @@ import java.util.TimeZone
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(onOpen: (Illust) -> Unit, onSearch: () -> Unit, vm: HomeViewModel = viewModel()) {
-	LaunchedEffect(vm.following) { vm.load() }
+	LaunchedEffect(vm.section) { vm.load() }
 	Column(Modifier.fillMaxSize()) {
 		TopAppBar(
 			title = { Text(stringResource(R.string.home)) },
 			actions = { IconButton(onClick = onSearch) { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search)) } },
 		)
 		Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-			FilterChip(selected = !vm.following, onClick = { vm.following = false }, label = { Text(stringResource(R.string.recommended)) })
-			FilterChip(selected = vm.following, onClick = { vm.following = true }, label = { Text(stringResource(R.string.following_feed)) })
+			FilterChip(selected = vm.section == HomeViewModel.Section.RECOMMENDED, onClick = { vm.section = HomeViewModel.Section.RECOMMENDED }, label = { Text(stringResource(R.string.recommended)) })
+			FilterChip(selected = vm.section == HomeViewModel.Section.FOLLOWING, onClick = { vm.section = HomeViewModel.Section.FOLLOWING }, label = { Text(stringResource(R.string.following_feed)) })
+			FilterChip(selected = vm.section == HomeViewModel.Section.MANGA, onClick = { vm.section = HomeViewModel.Section.MANGA }, label = { Text(stringResource(R.string.manga)) })
 		}
 		IllustGrid(
 			feed = vm.feed,
 			onOpen = onOpen,
 			onLoadMore = { vm.loadMore() },
 			onRetry = { vm.load(force = true) },
-			header = if (AppPrefs.kaoBannerVisible && !vm.following) ({ KeepAndroidOpenBanner(Modifier.padding(bottom = 4.dp)) }) else null,
+			header = if (AppPrefs.kaoBannerVisible && vm.section == HomeViewModel.Section.RECOMMENDED) ({ KeepAndroidOpenBanner(Modifier.padding(bottom = 4.dp)) }) else null,
 		)
 	}
 }
@@ -135,7 +136,8 @@ private fun utcFormat() = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { time
 
 @Composable
 private fun modeLabel(mode: RankingMode): String {
-	val base = when (mode.id.removeSuffix("_r18")) {
+	val manga = mode.id.endsWith("_manga")
+	val base = when (mode.id.removeSuffix("_manga").removeSuffix("_r18")) {
 		"day" -> stringResource(R.string.rank_day)
 		"week" -> stringResource(R.string.rank_week)
 		"month" -> stringResource(R.string.rank_month)
@@ -145,7 +147,8 @@ private fun modeLabel(mode: RankingMode): String {
 		"week_rookie" -> stringResource(R.string.rank_rookie)
 		else -> mode.id
 	}
-	return if (mode.adult) "$base R-18" else base
+	val label = if (manga) "$base · ${stringResource(R.string.manga)}" else base
+	return if (mode.adult) "$label R-18" else label
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

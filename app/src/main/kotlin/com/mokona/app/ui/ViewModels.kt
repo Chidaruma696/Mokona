@@ -28,6 +28,7 @@ import com.mokona.app.data.SearchTarget
 import com.mokona.app.data.Tag
 import com.mokona.app.data.TrendTag
 import com.mokona.app.data.UgoiraMetadata
+import com.mokona.app.data.UgoiraVideo
 import com.mokona.app.data.UserDetail
 import com.mokona.app.data.UserPreview
 import com.mokona.app.data.UsersPage
@@ -124,13 +125,30 @@ object FollowState {
 // ---- tabs
 
 class HomeViewModel : ViewModel() {
-	var following by mutableStateOf(false)
+	enum class Section { RECOMMENDED, FOLLOWING, MANGA }
+	var section by mutableStateOf(Section.RECOMMENDED)
 	val recommended = IllustFeed { PixivApi.recommended() }
 	val followed = IllustFeed { PixivApi.followIllusts() }
-	val feed: IllustFeed get() = if (following) followed else recommended
+	val manga = IllustFeed { PixivApi.recommendedManga() }
+	val feed: IllustFeed get() = when (section) { Section.RECOMMENDED -> recommended; Section.FOLLOWING -> followed; Section.MANGA -> manga }
 	fun load(force: Boolean = false) = feed.load(viewModelScope, force)
 	fun loadMore() = feed.loadMore(viewModelScope)
-	fun update(i: Illust) { recommended.update(i); followed.update(i) }
+	fun update(i: Illust) { recommended.update(i); followed.update(i); manga.update(i) }
+}
+
+/** The chapters of a manga series. */
+class SeriesViewModel(val seriesId: Long) : ViewModel() {
+	var title by mutableStateOf("")
+		private set
+	var count by mutableStateOf(0)
+		private set
+	val illustFeed = IllustFeed { PixivApi.series(seriesId).let { com.mokona.app.data.IllustsPage(it.illusts, it.nextUrl) } }
+	fun load(force: Boolean = false) {
+		if (title.isEmpty()) viewModelScope.launch { runCatching { PixivApi.series(seriesId) }.onSuccess { title = it.detail.title; count = it.detail.workCount } }
+		illustFeed.load(viewModelScope, force)
+	}
+	fun loadMore() = illustFeed.loadMore(viewModelScope)
+	fun update(i: Illust) = illustFeed.update(i)
 }
 
 class RankingViewModel : ViewModel() {
@@ -319,6 +337,8 @@ class DetailViewModel : ViewModel() {
 	var message by mutableStateOf<String?>(null)
 	var downloading by mutableStateOf(false)
 		private set
+	var encoding by mutableStateOf(false)
+		private set
 	var ugoira by mutableStateOf<UgoiraPlayer?>(null)
 		private set
 
@@ -410,6 +430,21 @@ class DetailViewModel : ViewModel() {
 		}
 	}
 
+	/** Encodes the ugoira to MP4 in Movies/Mokona with the phone's own H.264 encoder. */
+	fun downloadVideo(onDone: (Uri) -> Unit) {
+		val i = illust ?: return
+		if (encoding) return
+		viewModelScope.launch {
+			encoding = true
+			runCatching {
+				val meta = ugoira?.meta ?: PixivApi.ugoira(i.id)
+				val files = ugoira?.files ?: withContext(Dispatchers.IO) { UgoiraPlayer.unzip(PixivApi.download(meta.zipUrls.medium)) }
+				withContext(Dispatchers.Default) { UgoiraVideo.encode(MokonaApp.appContext, i.id, meta, files) }
+			}.onSuccess(onDone).onFailure { message = it.message ?: it.toString() }
+			encoding = false
+		}
+	}
+
 	override fun onCleared() { ugoira?.stop() }
 }
 
@@ -427,6 +462,11 @@ class UgoiraPlayer(private val illustId: Long, private val scope: CoroutineScope
 		private set
 	var playing by mutableStateOf(true)
 	private var job: Job? = null
+	/** Frame list and zip contents once loaded; the video export reuses them. */
+	var meta: UgoiraMetadata? = null
+		private set
+	var files: Map<String, ByteArray>? = null
+		private set
 
 	fun start() {
 		job = scope.launch {
@@ -439,6 +479,8 @@ class UgoiraPlayer(private val illustId: Long, private val scope: CoroutineScope
 			} catch (e: Exception) {
 				error = e.message; return@launch
 			}
+			this@UgoiraPlayer.meta = meta
+			this@UgoiraPlayer.files = files
 			if (meta.frames.isEmpty()) { error = "no frames"; return@launch }
 			val opts = BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.RGB_565 }
 			var index = 0
@@ -459,16 +501,18 @@ class UgoiraPlayer(private val illustId: Long, private val scope: CoroutineScope
 
 	fun stop() { job?.cancel() }
 
-	private fun unzip(bytes: ByteArray): Map<String, ByteArray> {
-		val out = HashMap<String, ByteArray>()
-		ZipInputStream(ByteArrayInputStream(bytes)).use { z ->
-			var e = z.nextEntry
-			while (e != null) {
-				if (!e.isDirectory) out[e.name] = z.readBytes()
-				e = z.nextEntry
+	companion object {
+		fun unzip(bytes: ByteArray): Map<String, ByteArray> {
+			val out = HashMap<String, ByteArray>()
+			ZipInputStream(ByteArrayInputStream(bytes)).use { z ->
+				var e = z.nextEntry
+				while (e != null) {
+					if (!e.isDirectory) out[e.name] = z.readBytes()
+					e = z.nextEntry
+				}
 			}
+			return out
 		}
-		return out
 	}
 }
 

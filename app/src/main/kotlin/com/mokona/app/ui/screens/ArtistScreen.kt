@@ -39,6 +39,7 @@ import com.mokona.app.data.Illust
 import com.mokona.app.data.PixivAuth
 import com.mokona.app.data.PixivUser
 import com.mokona.app.ui.ArtistViewModel
+import com.mokona.app.ui.SeriesViewModel
 
 /** An artist: profile header with the follow button, then their works, manga, bookmarks and who they follow. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -121,6 +122,22 @@ fun ArtistScreen(
 					UserList(vm.following, onOpenUser = onOpenUser, onOpenIllust = onOpen, onLoadMore = { vm.loadMore() }, onRefresh = { vm.reload() })
 				}
 			}
+		}
+	}
+}
+
+/** The chapters of a manga series, newest first. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SeriesScreen(seriesId: Long, onBack: () -> Unit, onOpen: (Illust) -> Unit, vm: SeriesViewModel = viewModel(key = "series-$seriesId") { SeriesViewModel(seriesId) }) {
+	LaunchedEffect(seriesId) { vm.load() }
+	Column(Modifier.fillMaxSize()) {
+		TopAppBar(
+			title = { Text(if (vm.count > 0) "${vm.title} · ${vm.count}" else vm.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+			navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back)) } },
+		)
+		Box(Modifier.fillMaxSize().navigationBarsPadding()) {
+			IllustGrid(vm.illustFeed, onOpen, { vm.loadMore() }, onRetry = { vm.load(force = true) })
 		}
 	}
 }

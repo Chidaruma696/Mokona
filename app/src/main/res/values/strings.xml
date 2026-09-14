@@ -114,4 +114,10 @@
 	<string name="duration_day">Last 24 h</string>
 	<string name="duration_week">Last week</string>
 	<string name="duration_month">Last month</string>
+	<string name="read_pages">Read · %d pages</string>
+	<string name="reader_mode">Reading direction</string>
+	<string name="view_series">View series</string>
+	<string name="series_of">Series: %s</string>
+	<string name="download_video">Download video</string>
+	<string name="saved_video">Video saved to Movies/Mokona</string>
 </resources>

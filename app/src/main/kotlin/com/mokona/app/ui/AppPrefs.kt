@@ -28,6 +28,9 @@ object AppPrefs {
 		private set
 	var gridColumns by mutableStateOf(2)
 		private set
+	/** Comic reader: one page at a time right to left (true) or a vertical strip (false). */
+	var readerHorizontal by mutableStateOf(false)
+		private set
 	/** Keep Android Open notice on Home; hidden once the user dismisses it, can be shown again from Settings. */
 	var kaoBannerVisible by mutableStateOf(true)
 		private set
@@ -41,6 +44,7 @@ object AppPrefs {
 		dynamicColor = p.getBoolean("dynamic_color", true)
 		gridColumns = p.getInt("grid_columns", 2)
 		kaoBannerVisible = p.getBoolean("kao_banner", true)
+		readerHorizontal = p.getBoolean("reader_horizontal", false)
 	}
 
 	private fun prefs() = MokonaApp.appContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -51,5 +55,6 @@ object AppPrefs {
 	fun updateAmoled(value: Boolean) { amoled = value; prefs().edit { putBoolean("amoled", value) } }
 	fun updateDynamicColor(value: Boolean) { dynamicColor = value; prefs().edit { putBoolean("dynamic_color", value) } }
 	fun updateGridColumns(value: Int) { gridColumns = value.coerceIn(1, 4); prefs().edit { putInt("grid_columns", gridColumns) } }
+	fun updateReaderHorizontal(value: Boolean) { readerHorizontal = value; prefs().edit { putBoolean("reader_horizontal", value) } }
 	fun updateKaoBanner(value: Boolean) { kaoBannerVisible = value; prefs().edit { putBoolean("kao_banner", value) } }
 }
