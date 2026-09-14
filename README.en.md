@@ -48,9 +48,10 @@ Mokona is an Android app to see Pixiv the way it should look. The official app c
 
 | 🖼️ See | 🔍 Find | 🎨 Live |
 | --- | --- | --- |
-| Home with your account's recommendations | Daily, weekly, monthly rankings, by audience, originals and rookies | Material You: the palette comes from your wallpaper (Android 12+) |
-| Staggered grid with every work's real proportion, 1 to 4 columns | Tag search with trending tags one tap away | Light, dark or system theme, plus **AMOLED black** for OLED screens |
-| Detail with every page, translated tags, related works and original download | Bookmarks from the app, synced with your account | R-18 content **off by default**, switchable in Settings › Content |
+| Home with your account's recommendations and new works from who you follow | Daily, weekly, monthly rankings, by audience, originals and rookies, for any date | Material You: the palette comes from your wallpaper (Android 12+) |
+| Staggered grid with every work's real proportion, 1 to 4 columns; pull down to refresh | Work search with autocomplete, sort, match and date filters, or artist search | Light, dark or system theme, plus **AMOLED black** for OLED screens |
+| Detail with every page, full-screen viewer with zoom, animated ugoira, translated tags, related works, comments, original download, share and set as wallpaper | Every artist's profile with a follow button, their works, manga, bookmarks and who they follow | R-18 content **off by default**, switchable in Settings › Content |
+| Bookmarks tab: public, private, filtered by tag, plus your browsing history | Public bookmark with a tap, private with a long press, synced with your account | pixiv.net links to works and artists can open in Mokona |
 
 <br/>
 

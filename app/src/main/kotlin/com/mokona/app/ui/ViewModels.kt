@@ -1,150 +1,393 @@
 package com.mokona.app.ui
 
 import android.content.ContentValues
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mokona.app.MokonaApp
+import com.mokona.app.data.BookmarkTag
+import com.mokona.app.data.Comment
 import com.mokona.app.data.Illust
 import com.mokona.app.data.IllustsPage
 import com.mokona.app.data.PixivApi
 import com.mokona.app.data.PixivAuth
+import com.mokona.app.data.PixivUser
 import com.mokona.app.data.RankingMode
+import com.mokona.app.data.Restrict
+import com.mokona.app.data.SearchDuration
+import com.mokona.app.data.SearchSort
+import com.mokona.app.data.SearchTarget
+import com.mokona.app.data.Tag
 import com.mokona.app.data.TrendTag
+import com.mokona.app.data.UgoiraMetadata
+import com.mokona.app.data.UserDetail
+import com.mokona.app.data.UserPreview
+import com.mokona.app.data.UsersPage
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayInputStream
+import java.util.zip.ZipInputStream
 
-/** A paged list of works with the adult filter applied at display time. */
-class IllustFeed(private val fetchFirst: suspend () -> IllustsPage) {
-	var items by mutableStateOf<List<Illust>>(emptyList())
-		private set
+/** A paged list from Pixiv: first page from one call, the rest through next_url. */
+open class Feed<T>(
+	private val fetchFirst: suspend () -> Pair<List<T>, String?>,
+	private val fetchNext: suspend (String) -> Pair<List<T>, String?>,
+) {
+	var items by mutableStateOf<List<T>>(emptyList())
+		protected set
 	var loading by mutableStateOf(false)
 		private set
 	var error by mutableStateOf<String?>(null)
 		private set
+	/** True while a pull-to-refresh reload is running (the old items stay on screen meanwhile). */
+	var refreshing by mutableStateOf(false)
+		private set
 	private var nextUrl: String? = null
 	private var job: Job? = null
 
-	/** Works the current settings allow. Muted works stay hidden too. */
-	val visible: List<Illust> get() = items.filter { (AppPrefs.showAdult || !it.isAdult) && !it.isMuted }
 	val hasMore: Boolean get() = nextUrl != null
 
-	fun load(scope: kotlinx.coroutines.CoroutineScope, force: Boolean = false) {
+	fun load(scope: CoroutineScope, force: Boolean = false) {
 		if (loading) return
 		if (items.isNotEmpty() && !force) return
 		job?.cancel()
 		job = scope.launch {
 			loading = true; error = null
+			refreshing = force && items.isNotEmpty()
 			runCatching { fetchFirst() }
-				.onSuccess { items = it.illusts; nextUrl = it.nextUrl }
+				.onSuccess { (list, next) -> items = list; nextUrl = next }
 				.onFailure { error = it.message ?: it.toString() }
-			loading = false
+			loading = false; refreshing = false
 		}
 	}
 
-	fun loadMore(scope: kotlinx.coroutines.CoroutineScope) {
+	fun loadMore(scope: CoroutineScope) {
 		val url = nextUrl ?: return
 		if (loading) return
 		job = scope.launch {
 			loading = true
-			runCatching { PixivApi.nextPage(url) }
-				.onSuccess { items = items + it.illusts; nextUrl = it.nextUrl }
+			runCatching { fetchNext(url) }
+				.onSuccess { (list, next) -> items = items + list; nextUrl = next }
 				.onFailure { error = it.message }
 			loading = false
 		}
 	}
 
-	fun update(illust: Illust) {
-		items = items.map { if (it.id == illust.id) illust else it }
+	fun replace(transform: (T) -> T) { items = items.map(transform) }
+}
+
+/** Works, with the adult filter applied at display time. */
+class IllustFeed(first: suspend () -> IllustsPage) : Feed<Illust>(
+	fetchFirst = { first().let { it.illusts to it.nextUrl } },
+	fetchNext = { PixivApi.nextPage(it).let { p -> p.illusts to p.nextUrl } },
+) {
+	/** Works the current settings allow. Muted works stay hidden too. */
+	val visible: List<Illust> get() = items.filter { (AppPrefs.showAdult || !it.isAdult) && !it.isMuted }
+	fun update(illust: Illust) = replace { if (it.id == illust.id) illust else it }
+}
+
+class UserFeed(first: suspend () -> UsersPage) : Feed<UserPreview>(
+	fetchFirst = { first().let { it.userPreviews to it.nextUrl } },
+	fetchNext = { PixivApi.nextUsers(it).let { p -> p.userPreviews to p.nextUrl } },
+) {
+	val visible: List<UserPreview> get() = items.filter { !it.isMuted }
+}
+
+/** Follow changes made in this session, so every list and screen agrees without refetching. */
+object FollowState {
+	private val overrides = mutableStateMapOf<Long, Boolean>()
+	fun isFollowed(user: PixivUser): Boolean = overrides[user.id] ?: user.isFollowed
+	var error by mutableStateOf<String?>(null)
+
+	fun toggle(scope: CoroutineScope, user: PixivUser) {
+		val next = !isFollowed(user)
+		overrides[user.id] = next
+		scope.launch {
+			runCatching { PixivApi.follow(user.id, add = next) }.onFailure { overrides[user.id] = !next; error = it.message }
+		}
 	}
 }
 
+// ---- tabs
+
 class HomeViewModel : ViewModel() {
-	val feed = IllustFeed { PixivApi.recommended() }
+	var following by mutableStateOf(false)
+	val recommended = IllustFeed { PixivApi.recommended() }
+	val followed = IllustFeed { PixivApi.followIllusts() }
+	val feed: IllustFeed get() = if (following) followed else recommended
 	fun load(force: Boolean = false) = feed.load(viewModelScope, force)
 	fun loadMore() = feed.loadMore(viewModelScope)
+	fun update(i: Illust) { recommended.update(i); followed.update(i) }
 }
 
 class RankingViewModel : ViewModel() {
 	var mode by mutableStateOf(RankingMode.all.first())
 		private set
+	/** yyyy-MM-dd, or null for the latest ranking Pixiv has. */
+	var date by mutableStateOf<String?>(null)
+		private set
 	private val feeds = HashMap<String, IllustFeed>()
-	val feed: IllustFeed get() = feeds.getOrPut(mode.id) { IllustFeed { PixivApi.ranking(mode.id) } }
+	val feed: IllustFeed get() = feeds.getOrPut("${mode.id}@$date") { IllustFeed { PixivApi.ranking(mode.id, date) } }
 	val modes: List<RankingMode> get() = RankingMode.all.filter { AppPrefs.showAdult || !it.adult }
 
 	fun select(m: RankingMode) { mode = m; load() }
+	fun selectDate(d: String?) { date = d; load() }
 	fun load(force: Boolean = false) = feed.load(viewModelScope, force)
 	fun loadMore() = feed.loadMore(viewModelScope)
+	fun update(i: Illust) = feeds.values.forEach { it.update(i) }
 }
 
 class SearchViewModel : ViewModel() {
 	var query by mutableStateOf("")
 	var submitted by mutableStateOf("")
 		private set
+	var searchUsers by mutableStateOf(false)
+	var sort by mutableStateOf(SearchSort.DATE_DESC)
+	var target by mutableStateOf(SearchTarget.PARTIAL_TAGS)
+	var duration by mutableStateOf(SearchDuration.ALL)
 	var trending by mutableStateOf<List<TrendTag>>(emptyList())
+		private set
+	var suggestions by mutableStateOf<List<Tag>>(emptyList())
 		private set
 	var feed by mutableStateOf<IllustFeed?>(null)
 		private set
+	var userFeed by mutableStateOf<UserFeed?>(null)
+		private set
+	private var suggestJob: Job? = null
 
 	fun loadTrending() {
 		if (trending.isNotEmpty()) return
 		viewModelScope.launch { runCatching { PixivApi.trendingTags() }.onSuccess { trending = it } }
 	}
 
+	/** Tag suggestions for the last word being typed, debounced. */
+	fun onQueryChange(text: String) {
+		query = text
+		suggestJob?.cancel()
+		val word = text.trim().substringAfterLast(' ')
+		if (word.length < 2 || searchUsers) { suggestions = emptyList(); return }
+		suggestJob = viewModelScope.launch {
+			delay(300)
+			runCatching { PixivApi.autocomplete(word) }.onSuccess { suggestions = it }
+		}
+	}
+
+	/** Replaces the word being typed with the chosen suggestion. */
+	fun pickSuggestion(tag: Tag) {
+		val words = query.trim().split(Regex(" +")).toMutableList()
+		if (words.isNotEmpty()) words.removeAt(words.lastIndex)
+		words.add(tag.name)
+		query = words.joinToString(" ") + " "
+		suggestions = emptyList()
+	}
+
 	fun search(word: String = query) {
 		val w = word.trim()
 		if (w.isEmpty()) return
-		query = w; submitted = w
-		feed = IllustFeed { PixivApi.search(w) }.also { it.load(viewModelScope) }
+		query = w; submitted = w; suggestions = emptyList()
+		if (searchUsers) {
+			feed = null
+			userFeed = UserFeed { PixivApi.searchUsers(w) }.also { it.load(viewModelScope) }
+		} else {
+			userFeed = null
+			feed = IllustFeed { PixivApi.search(w, sort, target, duration) }.also { it.load(viewModelScope) }
+		}
 	}
 
-	fun clear() { query = ""; submitted = ""; feed = null }
-	fun loadMore() = feed?.loadMore(viewModelScope)
+	/** Re-runs the current search after a filter change. */
+	fun refilter() { if (submitted.isNotEmpty() && !searchUsers) search(submitted) }
+
+	fun clear() { query = ""; submitted = ""; feed = null; userFeed = null; suggestions = emptyList() }
+	fun loadMore() { feed?.loadMore(viewModelScope); userFeed?.loadMore(viewModelScope) }
+	fun update(i: Illust) = feed?.update(i)
 }
+
+/** Bookmarks tab: public, private, by tag, plus the browsing history. */
+class BookmarksViewModel : ViewModel() {
+	enum class Section { PUBLIC, PRIVATE, HISTORY }
+	var section by mutableStateOf(Section.PUBLIC)
+		private set
+	var tag by mutableStateOf<String?>(null)
+		private set
+	var tags by mutableStateOf<List<BookmarkTag>>(emptyList())
+		private set
+	private val feeds = HashMap<String, IllustFeed>()
+	val feed: IllustFeed
+		get() = feeds.getOrPut("$section@$tag") {
+			IllustFeed {
+				when (section) {
+					Section.PUBLIC -> PixivApi.bookmarks(PixivAuth.userId, Restrict.PUBLIC, tag)
+					Section.PRIVATE -> PixivApi.bookmarks(PixivAuth.userId, Restrict.PRIVATE, tag)
+					Section.HISTORY -> PixivApi.history()
+				}
+			}
+		}
+
+	fun select(s: Section) { section = s; tag = null; load(); loadTags() }
+	fun selectTag(t: String?) { tag = t; load() }
+	fun load(force: Boolean = false) = feed.load(viewModelScope, force)
+	fun loadMore() = feed.loadMore(viewModelScope)
+	fun update(i: Illust) = feeds.values.forEach { it.update(i) }
+
+	fun loadTags() {
+		if (section == Section.HISTORY) { tags = emptyList(); return }
+		val restrict = if (section == Section.PRIVATE) Restrict.PRIVATE else Restrict.PUBLIC
+		viewModelScope.launch { runCatching { PixivApi.bookmarkTags(PixivAuth.userId, restrict) }.onSuccess { tags = it } }
+	}
+
+	/** After a bookmark toggle the lists here are stale; drop them so they reload on next view. */
+	fun invalidate() { feeds.clear() }
+}
+
+/** An artist's page: profile, works, bookmarks, people they follow. */
+class ArtistViewModel(val userId: Long) : ViewModel() {
+	enum class Section { WORKS, MANGA, BOOKMARKS, FOLLOWING }
+	var detail by mutableStateOf<UserDetail?>(null)
+		private set
+	var error by mutableStateOf<String?>(null)
+		private set
+	var section by mutableStateOf(Section.WORKS)
+	val works = IllustFeed { PixivApi.userIllusts(userId, "illust") }
+	val manga = IllustFeed { PixivApi.userIllusts(userId, "manga") }
+	val bookmarks = IllustFeed { PixivApi.bookmarks(userId) }
+	val following = UserFeed { PixivApi.following(userId) }
+
+	fun load() {
+		if (detail == null) viewModelScope.launch {
+			runCatching { PixivApi.userDetail(userId) }.onSuccess { detail = it }.onFailure { error = it.message }
+		}
+		loadSection()
+	}
+
+	fun loadSection() {
+		when (section) {
+			Section.WORKS -> works.load(viewModelScope)
+			Section.MANGA -> manga.load(viewModelScope)
+			Section.BOOKMARKS -> bookmarks.load(viewModelScope)
+			Section.FOLLOWING -> following.load(viewModelScope)
+		}
+	}
+
+	fun reload() {
+		when (section) {
+			Section.WORKS -> works.load(viewModelScope, force = true)
+			Section.MANGA -> manga.load(viewModelScope, force = true)
+			Section.BOOKMARKS -> bookmarks.load(viewModelScope, force = true)
+			Section.FOLLOWING -> following.load(viewModelScope, force = true)
+		}
+	}
+
+	fun loadMore() {
+		when (section) {
+			Section.WORKS -> works.loadMore(viewModelScope)
+			Section.MANGA -> manga.loadMore(viewModelScope)
+			Section.BOOKMARKS -> bookmarks.loadMore(viewModelScope)
+			Section.FOLLOWING -> following.loadMore(viewModelScope)
+		}
+	}
+
+	fun update(i: Illust) { works.update(i); manga.update(i); bookmarks.update(i) }
+}
+
+// ---- one work
 
 class DetailViewModel : ViewModel() {
 	var illust by mutableStateOf<Illust?>(null)
 		private set
 	var related by mutableStateOf<List<Illust>>(emptyList())
 		private set
+	var comments by mutableStateOf<List<Comment>>(emptyList())
+		private set
+	var totalComments by mutableStateOf(0)
+		private set
+	private var commentsNext: String? = null
+	var commentsLoading by mutableStateOf(false)
+		private set
 	var message by mutableStateOf<String?>(null)
 	var downloading by mutableStateOf(false)
 		private set
+	var ugoira by mutableStateOf<UgoiraPlayer?>(null)
+		private set
 
-	fun open(base: Illust) {
+	fun open(base: Illust?, id: Long) {
+		if (illust?.id == id) return
 		illust = base
-		related = emptyList()
+		related = emptyList(); comments = emptyList(); commentsNext = null; totalComments = 0
+		ugoira?.stop(); ugoira = null
 		viewModelScope.launch {
-			runCatching { PixivApi.detail(base.id) }.onSuccess { illust = it }
-			runCatching { PixivApi.related(base.id) }.onSuccess { related = it.illusts }
+			runCatching { PixivApi.detail(id) }.onSuccess { illust = it }.onFailure { if (base == null) message = it.message }
+			val i = illust ?: return@launch
+			if (i.isAnimated) ugoira = UgoiraPlayer(i.id, viewModelScope).also { it.start() }
+			runCatching { PixivApi.related(id) }.onSuccess { related = it.illusts }
+			loadComments()
 		}
 	}
 
-	fun toggleBookmark(onChanged: (Illust) -> Unit) {
+	fun loadComments() {
 		val i = illust ?: return
-		val next = i.copy(isBookmarked = !i.isBookmarked, totalBookmarks = i.totalBookmarks + if (i.isBookmarked) -1 else 1)
+		if (commentsLoading) return
+		val next = commentsNext
+		if (comments.isNotEmpty() && next == null) return
+		viewModelScope.launch {
+			commentsLoading = true
+			runCatching { if (next != null) PixivApi.nextComments(next) else PixivApi.comments(i.id) }
+				.onSuccess { comments = comments + it.comments; commentsNext = it.nextUrl; totalComments = maxOf(totalComments, it.totalComments) }
+				.onFailure { message = it.message }
+			commentsLoading = false
+		}
+	}
+
+	val hasMoreComments: Boolean get() = commentsNext != null
+
+	fun addComment(text: String, onDone: () -> Unit) {
+		val i = illust ?: return
+		val t = text.trim()
+		if (t.isEmpty()) return
+		viewModelScope.launch {
+			runCatching { PixivApi.addComment(i.id, t) }
+				.onSuccess {
+					comments = emptyList(); commentsNext = null
+					loadComments(); onDone()
+				}
+				.onFailure { message = it.message }
+		}
+	}
+
+	/** Tap: add or remove a public bookmark. Long press: add a private one. */
+	fun toggleBookmark(onChanged: (Illust) -> Unit, restrict: Restrict = Restrict.PUBLIC) {
+		val i = illust ?: return
+		val add = if (restrict == Restrict.PRIVATE) true else !i.isBookmarked
+		if (add && i.isBookmarked && restrict == Restrict.PRIVATE) return
+		val next = i.copy(isBookmarked = add, totalBookmarks = i.totalBookmarks + if (add) 1 else -1)
 		illust = next
 		onChanged(next)
 		viewModelScope.launch {
-			runCatching { PixivApi.bookmark(i.id, add = !i.isBookmarked) }.onFailure {
+			runCatching { PixivApi.bookmark(i.id, add = add, restrict = restrict) }.onFailure {
 				illust = i; onChanged(i); message = it.message
 			}
 		}
 	}
 
 	/** Saves every page of the work in Pictures/Mokona through MediaStore (no storage permission needed). */
-	fun download(onDone: (Int) -> Unit) {
+	fun download(onDone: (List<Uri>) -> Unit) {
 		val i = illust ?: return
 		if (downloading) return
 		viewModelScope.launch {
 			downloading = true
-			var saved = 0
+			val saved = ArrayList<Uri>()
 			for ((index, url) in i.originalUrls.withIndex()) {
 				runCatching {
 					val bytes = PixivApi.download(url)
@@ -158,18 +401,88 @@ class DetailViewModel : ViewModel() {
 						}
 						val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: error("MediaStore")
 						resolver.openOutputStream(uri)!!.use { it.write(bytes) }
+						uri
 					}
-				}.onSuccess { saved++ }.onFailure { message = it.message }
+				}.onSuccess { saved.add(it) }.onFailure { message = it.message }
 			}
 			downloading = false
 			onDone(saved)
 		}
 	}
+
+	override fun onCleared() { ugoira?.stop() }
 }
+
+/**
+ * Plays a ugoira: downloads the frame zip once, then decodes frame after frame
+ * at the delay Pixiv gives. Frames are decoded on demand so long animations
+ * do not need every bitmap in memory at once.
+ */
+class UgoiraPlayer(private val illustId: Long, private val scope: CoroutineScope) {
+	var frame by mutableStateOf<Bitmap?>(null)
+		private set
+	var progress by mutableStateOf(0f)
+		private set
+	var error by mutableStateOf<String?>(null)
+		private set
+	var playing by mutableStateOf(true)
+	private var job: Job? = null
+
+	fun start() {
+		job = scope.launch {
+			val meta: UgoiraMetadata
+			val files: Map<String, ByteArray>
+			try {
+				meta = PixivApi.ugoira(illustId)
+				val zip = PixivApi.download(meta.zipUrls.medium)
+				files = withContext(Dispatchers.IO) { unzip(zip) }
+			} catch (e: Exception) {
+				error = e.message; return@launch
+			}
+			if (meta.frames.isEmpty()) { error = "no frames"; return@launch }
+			val opts = BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.RGB_565 }
+			var index = 0
+			while (isActive) {
+				if (!playing) { delay(100); continue }
+				val f = meta.frames[index]
+				val bytes = files[f.file]
+				if (bytes != null) {
+					val bmp = withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts) }
+					if (bmp != null) frame = bmp
+				}
+				progress = (index + 1f) / meta.frames.size
+				delay(f.delay.coerceAtLeast(16).toLong())
+				index = (index + 1) % meta.frames.size
+			}
+		}
+	}
+
+	fun stop() { job?.cancel() }
+
+	private fun unzip(bytes: ByteArray): Map<String, ByteArray> {
+		val out = HashMap<String, ByteArray>()
+		ZipInputStream(ByteArrayInputStream(bytes)).use { z ->
+			var e = z.nextEntry
+			while (e != null) {
+				if (!e.isDirectory) out[e.name] = z.readBytes()
+				e = z.nextEntry
+			}
+		}
+		return out
+	}
+}
+
+// ---- login and links
 
 /** The OAuth code that came back from the browser, waiting for the login screen to use it. */
 object LoginBridge {
 	var pendingCode by mutableStateOf<String?>(null)
+}
+
+/** A pixiv.net link opened with Mokona, waiting for the navigation to show it. */
+object LinkBridge {
+	var pendingIllust by mutableStateOf<Long?>(null)
+	var pendingUser by mutableStateOf<Long?>(null)
 }
 
 class LoginViewModel : ViewModel() {
