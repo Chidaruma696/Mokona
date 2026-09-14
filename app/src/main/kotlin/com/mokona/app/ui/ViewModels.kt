@@ -167,6 +167,11 @@ class DetailViewModel : ViewModel() {
 	}
 }
 
+/** The OAuth code that came back from the browser, waiting for the login screen to use it. */
+object LoginBridge {
+	var pendingCode by mutableStateOf<String?>(null)
+}
+
 class LoginViewModel : ViewModel() {
 	var busy by mutableStateOf(false)
 		private set

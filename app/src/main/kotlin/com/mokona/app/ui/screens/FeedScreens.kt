@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
@@ -101,7 +102,7 @@ fun SearchScreen(onOpen: (Illust) -> Unit, vm: SearchViewModel = viewModel()) {
 		OutlinedTextField(
 			value = vm.query,
 			onValueChange = { vm.query = it },
-			modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+			modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp),
 			placeholder = { Text(stringResource(R.string.search_hint)) },
 			singleLine = true,
 			leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
@@ -133,7 +134,7 @@ fun SearchScreen(onOpen: (Illust) -> Unit, vm: SearchViewModel = viewModel()) {
 /** Shown on every tab while there is no session. */
 @Composable
 fun LoginNeeded(onLogin: () -> Unit) {
-	Column(Modifier.fillMaxSize().padding(32.dp), verticalArrangement = Arrangement.Center) {
+	Column(Modifier.fillMaxSize().statusBarsPadding().padding(32.dp), verticalArrangement = Arrangement.Center) {
 		Card {
 			Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
 				Text(stringResource(R.string.login_needed_title), style = MaterialTheme.typography.titleLarge)

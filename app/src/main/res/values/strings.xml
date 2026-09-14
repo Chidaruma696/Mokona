@@ -32,6 +32,12 @@
 	<string name="not_logged_in">Not signed in</string>
 	<string name="login_needed_title">Pixiv asks for an account</string>
 	<string name="login_needed_body">Pixiv\'s API only answers to signed-in users. Mokona opens Pixiv\'s own login page; your password never goes through the app.</string>
+	<string name="login_browser_title">Sign in on pixiv.net</string>
+	<string name="login_browser_body">The login page opens in your phone\'s browser (Chrome), with its own password manager and protections. Mokona never sees what you type: when Pixiv finishes, it sends the app a one-time code and nothing else.</string>
+	<string name="login_open_browser">Open Pixiv in the browser</string>
+	<string name="login_manual_title">Did the browser not come back?</string>
+	<string name="login_manual_body">If after signing in the browser shows an error page instead of returning to Mokona, copy that page\'s address (it starts with pixiv://account/login?code=) and paste it here.</string>
+	<string name="login_manual_use">Use this code</string>
 	<string name="account">Account</string>
 	<string name="appearance">Appearance</string>
 	<string name="content">Content</string>

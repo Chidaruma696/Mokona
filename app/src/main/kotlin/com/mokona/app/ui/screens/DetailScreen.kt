@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -84,7 +85,7 @@ fun DetailScreen(
 				}
 			},
 		)
-		Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+		Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding()) {
 			val pages = illust.largeUrls
 			val pager = rememberPagerState { pages.size }
 			Box(Modifier.fillMaxWidth().background(Color.Black)) {

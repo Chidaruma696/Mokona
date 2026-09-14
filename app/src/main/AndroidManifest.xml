@@ -21,6 +21,13 @@
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />
 			</intent-filter>
+			<!-- Pixiv's login page hands the OAuth code back through this link. -->
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
+				<data android:scheme="pixiv" android:host="account" android:path="/login" />
+			</intent-filter>
 		</activity>
 	</application>
 
