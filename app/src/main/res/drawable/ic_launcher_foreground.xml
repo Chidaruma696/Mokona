@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A black Mokona: round body, long ears, the red jewel on the forehead. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+	android:width="108dp"
+	android:height="108dp"
+	android:viewportWidth="108"
+	android:viewportHeight="108">
+	<!-- ears -->
+	<path android:fillColor="#0E0E12" android:pathData="M40,50 C34,36 36,22 42,20 C48,18 52,32 50,50 Z" />
+	<path android:fillColor="#0E0E12" android:pathData="M68,50 C74,36 72,22 66,20 C60,18 56,32 58,50 Z" />
+	<!-- body -->
+	<path android:fillColor="#0E0E12" android:pathData="M54,44 C70,44 82,56 82,70 C82,84 70,92 54,92 C38,92 26,84 26,70 C26,56 38,44 54,44 Z" />
+	<!-- eyes -->
+	<path android:fillColor="#F4F4F8" android:pathData="M44,66 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0" />
+	<path android:fillColor="#F4F4F8" android:pathData="M64,66 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0" />
+	<!-- jewel -->
+	<path android:fillColor="#E53950" android:pathData="M54,50 L59,56 L54,62 L49,56 Z" />
+</vector>

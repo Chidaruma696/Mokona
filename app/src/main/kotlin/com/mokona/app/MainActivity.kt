@@ -1,0 +1,129 @@
+package com.mokona.app
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mokona.app.data.Illust
+import com.mokona.app.data.PixivAuth
+import com.mokona.app.ui.AppPrefs
+import com.mokona.app.ui.HomeViewModel
+import com.mokona.app.ui.MokonaTheme
+import com.mokona.app.ui.RankingViewModel
+import com.mokona.app.ui.SearchViewModel
+import com.mokona.app.ui.screens.DetailScreen
+import com.mokona.app.ui.screens.HomeScreen
+import com.mokona.app.ui.screens.LoginNeeded
+import com.mokona.app.ui.screens.LoginScreen
+import com.mokona.app.ui.screens.OnboardingScreen
+import com.mokona.app.ui.screens.RankingScreen
+import com.mokona.app.ui.screens.SearchScreen
+import com.mokona.app.ui.screens.SettingsScreen
+
+private enum class Tab(val labelRes: Int) {
+	HOME(R.string.home), RANKING(R.string.ranking), SEARCH(R.string.search), SETTINGS(R.string.settings);
+}
+
+private sealed interface Screen {
+	data class Detail(val illust: Illust) : Screen
+	data object Login : Screen
+}
+
+class MainActivity : ComponentActivity() {
+	override fun onCreate(savedInstanceState: Bundle?) {
+		super.onCreate(savedInstanceState)
+		enableEdgeToEdge()
+		setContent {
+			MokonaTheme {
+				Surface(Modifier.fillMaxSize()) {
+					if (!AppPrefs.onboardingDone) OnboardingScreen(onStart = {}) else MokonaNav()
+				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun MokonaNav() {
+	var tab by remember { mutableStateOf(Tab.HOME) }
+	val stack = remember { mutableStateListOf<Screen>() }
+	val homeVm: HomeViewModel = viewModel()
+	val rankingVm: RankingViewModel = viewModel()
+	val searchVm: SearchViewModel = viewModel()
+
+	val top = stack.lastOrNull()
+	BackHandler(enabled = top != null) { stack.removeAt(stack.lastIndex) }
+
+	val open: (Illust) -> Unit = { stack.add(Screen.Detail(it)) }
+	val login: () -> Unit = { stack.add(Screen.Login) }
+	val changed: (Illust) -> Unit = { i -> homeVm.feed.update(i); rankingVm.feed.update(i); searchVm.feed?.update(i) }
+
+	when (top) {
+		is Screen.Detail -> DetailScreen(
+			base = top.illust,
+			onBack = { stack.removeAt(stack.lastIndex) },
+			onOpen = open,
+			onSearchTag = { tag -> stack.clear(); tab = Tab.SEARCH; searchVm.search(tag) },
+			onChanged = changed,
+		)
+		Screen.Login -> LoginScreen(onBack = { stack.removeAt(stack.lastIndex) }, onDone = { stack.clear() })
+		null -> Scaffold(
+			bottomBar = {
+				NavigationBar {
+					Tab.entries.forEach { t ->
+						NavigationBarItem(
+							selected = tab == t,
+							onClick = { tab = t },
+							icon = {
+								Icon(
+									when (t) {
+										Tab.HOME -> Icons.Default.Home
+										Tab.RANKING -> Icons.Default.Star
+										Tab.SEARCH -> Icons.Default.Search
+										Tab.SETTINGS -> Icons.Default.Settings
+									},
+									contentDescription = null,
+								)
+							},
+							label = { Text(stringResource(t.labelRes)) },
+						)
+					}
+				}
+			},
+		) { padding ->
+			Box(Modifier.fillMaxSize().padding(padding)) {
+				val loggedIn = PixivAuth.isLoggedIn
+				when (tab) {
+					Tab.HOME -> if (loggedIn) HomeScreen(onOpen = open, vm = homeVm) else LoginNeeded(login)
+					Tab.RANKING -> if (loggedIn) RankingScreen(onOpen = open, vm = rankingVm) else LoginNeeded(login)
+					Tab.SEARCH -> if (loggedIn) SearchScreen(onOpen = open, vm = searchVm) else LoginNeeded(login)
+					Tab.SETTINGS -> SettingsScreen(onLogin = login)
+				}
+			}
+		}
+	}
+}
