@@ -50,7 +50,8 @@ Mokona es una app Android para ver Pixiv como debería verse. La app oficial rec
 | --- | --- | --- |
 | Inicio con las recomendaciones de tu cuenta y las obras nuevas de quien sigues | Ranking diario, semanal, mensual, por público, originales y novatos, de cualquier fecha | Material You: la paleta sale de tu fondo de pantalla (Android 12+) |
 | Cuadrícula escalonada con la proporción real de cada obra, de 1 a 4 columnas; deslizar hacia abajo para actualizar | Búsqueda de obras con autocompletado, orden, coincidencia y fecha, o de artistas | Modo claro, oscuro o del sistema, y **negro AMOLED** para pantallas OLED |
-| Detalle con todas las páginas, visor a pantalla completa con zoom, ugoira animado, etiquetas traducidas, obras relacionadas, comentarios, descarga del original, compartir y fondo de pantalla | Perfil de cada artista con botón de seguir, sus obras, manga, marcadores y a quién sigue | Contenido R-18 **desactivado por defecto**, activable en Ajustes › Contenido |
+| Detalle con todas las páginas, visor a pantalla completa con zoom, ugoira animado y **descargable como vídeo MP4**, etiquetas traducidas, obras relacionadas, comentarios, descarga del original, compartir y fondo de pantalla | Perfil de cada artista con botón de seguir, sus obras, manga, marcadores y a quién sigue | Contenido R-18 **desactivado por defecto**, activable en Ajustes › Contenido |
+| **Lector de cómics** para las obras de varias páginas: tira vertical o página a página de derecha a izquierda, con zoom; manga recomendado en Inicio, ranking de manga y series con todos sus capítulos |
 | Pestaña de marcadores: públicos, privados, filtrados por etiqueta, e historial de lo que has visto | Marcador público con un toque y privado con pulsación larga, sincronizados con tu cuenta | Los enlaces de pixiv.net a obras y artistas se pueden abrir con Mokona |
 
 <br/>

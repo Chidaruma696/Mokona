@@ -83,6 +83,14 @@ object PixivApi {
 	suspend fun recommended(): IllustsPage =
 		illusts(url("v1/illust/recommended", "include_ranking_illusts" to "true", "include_privacy_policy" to "true"))
 
+	suspend fun recommendedManga(): IllustsPage = illusts(url("v1/manga/recommended", "include_ranking_illusts" to "true"))
+
+	/** A manga series: its chapters, newest first. */
+	suspend fun series(seriesId: Long): SeriesPage =
+		json.decodeFromString(call(url("v2/illust/series", "illust_series_id" to seriesId.toString())))
+
+	suspend fun nextSeries(nextUrl: String): SeriesPage = json.decodeFromString(call(nextUrl.toHttpUrl()))
+
 	/** New works from the people the user follows. */
 	suspend fun followIllusts(restrict: Restrict = Restrict.PUBLIC): IllustsPage =
 		illusts(url("v2/illust/follow", "restrict" to restrict.id))

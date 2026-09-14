@@ -59,7 +59,10 @@ data class Illust(
 	@SerialName("is_bookmarked") val isBookmarked: Boolean = false,
 	@SerialName("is_muted") val isMuted: Boolean = false,
 	@SerialName("total_comments") val totalComments: Int = 0,
+	/** Manga chapters belong to a series. */
+	val series: Series? = null,
 ) {
+	val isManga: Boolean get() = type == "manga"
 	val isAdult: Boolean get() = xRestrict > 0
 	val isAnimated: Boolean get() = type == "ugoira"
 	/** Keeps the real proportion of the picture in grids; Pixiv caps the ratio so nothing becomes a sliver. */
@@ -72,6 +75,19 @@ data class Illust(
 		get() = if (metaPages.isNotEmpty()) metaPages.map { it.imageUrls.large } else listOf(imageUrls.large)
 	val webUrl: String get() = "https://www.pixiv.net/artworks/$id"
 }
+
+@Serializable
+data class Series(val id: Long = 0, val title: String = "")
+
+@Serializable
+data class SeriesDetail(val id: Long = 0, val title: String = "", val caption: String = "", @SerialName("series_work_count") val workCount: Int = 0, val user: PixivUser = PixivUser())
+
+@Serializable
+data class SeriesPage(
+	@SerialName("illust_series_detail") val detail: SeriesDetail = SeriesDetail(),
+	val illusts: List<Illust> = emptyList(),
+	@SerialName("next_url") val nextUrl: String? = null,
+)
 
 @Serializable
 data class IllustsPage(val illusts: List<Illust> = emptyList(), @SerialName("next_url") val nextUrl: String? = null)
@@ -165,7 +181,9 @@ data class RankingMode(val id: String, val adult: Boolean) {
 			RankingMode("day", false), RankingMode("week", false), RankingMode("month", false),
 			RankingMode("day_male", false), RankingMode("day_female", false),
 			RankingMode("week_original", false), RankingMode("week_rookie", false),
+			RankingMode("day_manga", false), RankingMode("week_manga", false), RankingMode("month_manga", false), RankingMode("week_rookie_manga", false),
 			RankingMode("day_r18", true), RankingMode("week_r18", true), RankingMode("day_male_r18", true), RankingMode("day_female_r18", true),
+			RankingMode("day_r18_manga", true), RankingMode("week_r18_manga", true),
 		)
 	}
 }

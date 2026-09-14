@@ -50,6 +50,8 @@ import com.mokona.app.ui.screens.LoginNeeded
 import com.mokona.app.ui.screens.LoginScreen
 import com.mokona.app.ui.screens.OnboardingScreen
 import com.mokona.app.ui.screens.RankingScreen
+import com.mokona.app.ui.screens.ReaderScreen
+import com.mokona.app.ui.screens.SeriesScreen
 import com.mokona.app.ui.screens.SearchScreen
 import com.mokona.app.ui.screens.SettingsScreen
 import com.mokona.app.ui.screens.ViewerScreen
@@ -63,6 +65,8 @@ private sealed interface Screen {
 	data class Detail(val id: Long, val illust: Illust?) : Screen
 	data class Artist(val userId: Long) : Screen
 	data class Viewer(val urls: List<String>, val index: Int) : Screen
+	data class Reader(val illust: Illust) : Screen
+	data class Series(val seriesId: Long) : Screen
 	data object Login : Screen
 }
 
@@ -141,8 +145,12 @@ private fun MokonaNav() {
 			onOpenUser = { openUser(it.id) },
 			onSearchTag = { tag -> stack.clear(); tab = Tab.SEARCH; searchVm.searchUsers = false; searchVm.search(tag) },
 			onView = { urls, index -> stack.add(Screen.Viewer(urls, index)) },
+			onRead = { stack.add(Screen.Reader(it)) },
+			onSeries = { stack.add(Screen.Series(it)) },
 			onChanged = changed,
 		)
+		is Screen.Reader -> ReaderScreen(top.illust, onClose = { stack.removeAt(stack.lastIndex) }, onView = { urls, index -> stack.add(Screen.Viewer(urls, index)) })
+		is Screen.Series -> SeriesScreen(top.seriesId, onBack = { stack.removeAt(stack.lastIndex) }, onOpen = open)
 		is Screen.Artist -> ArtistScreen(
 			userId = top.userId,
 			onBack = { stack.removeAt(stack.lastIndex) },
