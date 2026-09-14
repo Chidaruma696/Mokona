@@ -57,6 +57,10 @@ fun SettingsScreen(onLogin: () -> Unit) {
 			SectionTitle(stringResource(R.string.appearance))
 			Card(Modifier.padding(horizontal = 12.dp)) {
 				ListItem(
+					headlineContent = { Text(stringResource(R.string.language)) },
+					supportingContent = { Row(modifier = Modifier.padding(top = 6.dp)) { LanguageChips() } },
+				)
+				ListItem(
 					headlineContent = { Text(stringResource(R.string.theme_mode)) },
 					supportingContent = {
 						Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {

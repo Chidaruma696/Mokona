@@ -119,4 +119,7 @@
 	<string name="series_of">Serie: %s</string>
 	<string name="download_video">Descargar vídeo</string>
 	<string name="saved_video">Vídeo guardado en Películas/Mokona</string>
+	<string name="language">Idioma</string>
+	<string name="lang_system">El del teléfono</string>
+	<string name="onboarding_language_body">Mokona habla inglés y español. Deja inglés o elige uno; se puede cambiar luego en Ajustes.</string>
 </resources>
