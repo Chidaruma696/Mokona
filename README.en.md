@@ -36,7 +36,7 @@
 
 1. Open the [latest release](https://github.com/Chidaruma696/Mokona/releases/latest) and grab `Mokona-x.y.z.apk`.
 2. Open it on your phone. Android will ask once for permission to install apps from this source.
-3. Sign in with your Pixiv account. Mokona opens Pixiv's own login page; your password never goes through the app.
+3. Sign in with your Pixiv account. The login page opens in the device browser; your password never goes through the app.
 
 Mokona is not on the Play Store and never will be; it is distributed only from here. As long as Android stays open, that is enough ([why it matters](#-keep-android-open)).
 
@@ -69,7 +69,7 @@ Mokona uses Material 3 as it comes: dynamic colors taken from the wallpaper on A
 ## 🔐 Account and privacy
 
 - Pixiv's API only answers to signed-in users, so an account is required.
-- Login is the Pixiv app's own (OAuth with PKCE): Mokona opens the official page in a WebView and only receives the code back. **It never sees your password.**
+- Login is the Pixiv app's own (OAuth with PKCE): Mokona opens the official page in the device browser (a Chrome tab, with its password manager and protections) and only receives the code back. **It never sees your password.**
 - Tokens live in the app's private storage and refresh themselves.
 - Mokona has no ads, no analytics, no trackers, and talks to nobody but Pixiv.
 

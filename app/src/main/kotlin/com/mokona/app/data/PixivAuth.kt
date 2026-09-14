@@ -59,10 +59,12 @@ object PixivAuth {
 
 	private fun prefs() = MokonaApp.appContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
-	// ---- PKCE
-	private var verifier: String = ""
+	// ---- PKCE. The verifier is kept in preferences: the browser may kill the app while the user signs in.
+	private var verifier: String
+		get() = prefs().getString("pkce_verifier", "") ?: ""
+		set(value) = prefs().edit { putString("pkce_verifier", value) }
 
-	/** Starts a login attempt: returns the URL the WebView must open. */
+	/** Starts a login attempt: returns the URL to open in the device browser. */
 	fun beginLogin(): String {
 		val bytes = ByteArray(32).also { SecureRandom().nextBytes(it) }
 		verifier = base64Url(bytes)
@@ -81,6 +83,7 @@ object PixivAuth {
 			.add("include_policy", "true")
 			.build()
 		exchange(form)
+		verifier = ""
 	}
 
 	private suspend fun refresh() = withContext(Dispatchers.IO) {
@@ -134,6 +137,7 @@ object PixivAuth {
 	fun logout() {
 		accessToken = null; refreshToken = null; expiresAt = 0; userName = null; userId = 0
 		prefs().edit { clear() }
+		// nothing else to keep: the verifier goes with the rest
 	}
 
 	@Serializable

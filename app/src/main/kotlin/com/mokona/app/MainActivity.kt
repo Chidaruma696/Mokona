@@ -1,11 +1,13 @@
 package com.mokona.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -32,6 +34,7 @@ import com.mokona.app.data.Illust
 import com.mokona.app.data.PixivAuth
 import com.mokona.app.ui.AppPrefs
 import com.mokona.app.ui.HomeViewModel
+import com.mokona.app.ui.LoginBridge
 import com.mokona.app.ui.MokonaTheme
 import com.mokona.app.ui.RankingViewModel
 import com.mokona.app.ui.SearchViewModel
@@ -57,12 +60,27 @@ class MainActivity : ComponentActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		enableEdgeToEdge()
+		handleLoginIntent(intent)
 		setContent {
 			MokonaTheme {
 				Surface(Modifier.fillMaxSize()) {
 					if (!AppPrefs.onboardingDone) OnboardingScreen(onStart = {}) else MokonaNav()
 				}
 			}
+		}
+	}
+
+	override fun onNewIntent(intent: Intent) {
+		super.onNewIntent(intent)
+		handleLoginIntent(intent)
+	}
+
+	/** pixiv://account/login?code=... from the browser after signing in. */
+	private fun handleLoginIntent(intent: Intent?) {
+		val uri = intent?.data ?: return
+		if (uri.scheme == "pixiv") {
+			uri.getQueryParameter("code")?.let { LoginBridge.pendingCode = it }
+			intent.data = null
 		}
 	}
 }
@@ -79,7 +97,11 @@ private fun MokonaNav() {
 	BackHandler(enabled = top != null) { stack.removeAt(stack.lastIndex) }
 
 	val open: (Illust) -> Unit = { stack.add(Screen.Detail(it)) }
-	val login: () -> Unit = { stack.add(Screen.Login) }
+	val login: () -> Unit = { if (stack.lastOrNull() != Screen.Login) stack.add(Screen.Login) }
+
+	// A code arriving while the login screen is not open (the browser brought us back) opens it.
+	val pendingCode = LoginBridge.pendingCode
+	androidx.compose.runtime.LaunchedEffect(pendingCode) { if (pendingCode != null) login() }
 	val changed: (Illust) -> Unit = { i -> homeVm.feed.update(i); rankingVm.feed.update(i); searchVm.feed?.update(i) }
 
 	when (top) {
@@ -92,6 +114,8 @@ private fun MokonaNav() {
 		)
 		Screen.Login -> LoginScreen(onBack = { stack.removeAt(stack.lastIndex) }, onDone = { stack.clear() })
 		null -> Scaffold(
+			// The top inset belongs to each tab's own TopAppBar; the bottom one to the navigation bar.
+			contentWindowInsets = WindowInsets(0, 0, 0, 0),
 			bottomBar = {
 				NavigationBar {
 					Tab.entries.forEach { t ->

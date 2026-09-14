@@ -30,7 +30,13 @@
 	<string name="logged_in">Sesión iniciada en Pixiv</string>
 	<string name="not_logged_in">Sin sesión</string>
 	<string name="login_needed_title">Pixiv pide una cuenta</string>
-	<string name="login_needed_body">La API de Pixiv solo responde a usuarios con sesión. Mokona abre la página de inicio de sesión de Pixiv; tu contraseña nunca pasa por la app.</string>
+	<string name="login_needed_body">La API de Pixiv solo responde a usuarios con sesión. Mokona abre la página de inicio de sesión de Pixiv en tu navegador; tu contraseña nunca pasa por la app.</string>
+	<string name="login_browser_title">Inicia sesión en pixiv.net</string>
+	<string name="login_browser_body">La página de inicio de sesión se abre en el navegador del teléfono (Chrome), con su propio gestor de contraseñas y sus protecciones. Mokona nunca ve lo que escribes: cuando Pixiv termina, le manda a la app un código de un solo uso y nada más.</string>
+	<string name="login_open_browser">Abrir Pixiv en el navegador</string>
+	<string name="login_manual_title">¿El navegador no regresó?</string>
+	<string name="login_manual_body">Si después de iniciar sesión el navegador muestra una página de error en vez de volver a Mokona, copia la dirección de esa página (empieza por pixiv://account/login?code=) y pégala aquí.</string>
+	<string name="login_manual_use">Usar este código</string>
 	<string name="account">Cuenta</string>
 	<string name="appearance">Aspecto</string>
 	<string name="content">Contenido</string>
