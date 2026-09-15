@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -30,6 +31,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -54,6 +57,7 @@ import com.mokona.app.data.RankingMode
 import com.mokona.app.data.SearchDuration
 import com.mokona.app.data.SearchSort
 import com.mokona.app.data.SearchTarget
+import com.mokona.app.data.Tag
 import com.mokona.app.ui.AppPrefs
 import com.mokona.app.ui.BookmarksViewModel
 import com.mokona.app.ui.HomeViewModel
@@ -175,17 +179,35 @@ fun SearchScreen(onOpen: (Illust) -> Unit, onOpenUser: (PixivUser) -> Unit, vm: 
 		}
 		if (vm.suggestions.isNotEmpty()) {
 			LazyRow(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-				items(vm.suggestions, key = { it.name }) { t ->
-					AssistChip(onClick = { vm.pickSuggestion(t) }, label = { Text(tagLabel(t.name, t.translatedName)) })
-				}
+				items(vm.suggestions, key = { it.name }) { t -> TagChip(t.name, t.translatedName, onClick = { vm.pickSuggestion(t) }) }
 			}
 		}
 		val feed = vm.feed
+		val popular = vm.popularFeed
 		val userFeed = vm.userFeed
+		// Each section keeps its own scroll position while the user flips between them.
+		val newestState = rememberLazyStaggeredGridState()
+		val popularState = rememberLazyStaggeredGridState()
 		when {
-			feed != null -> {
-				SearchFilters(vm)
-				IllustGrid(feed = feed, onOpen = onOpen, onLoadMore = { vm.loadMore() }, onRetry = { vm.refilter() })
+			feed != null && popular != null -> {
+				SearchHeader(vm)
+				SearchSections(vm)
+				if (vm.section == SearchViewModel.Section.NEWEST) {
+					SearchFilters(vm, withSort = true)
+					IllustGrid(feed = feed, onOpen = onOpen, onLoadMore = { vm.loadMore() }, onRetry = { vm.refilter() }, state = newestState)
+				} else {
+					SearchFilters(vm, withSort = false)
+					IllustGrid(
+						feed = popular, onOpen = onOpen, onLoadMore = { vm.loadMore() }, onRetry = { vm.refilter() }, state = popularState,
+						header = {
+							Text(
+								stringResource(R.string.popular_preview_note),
+								Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+								style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
+						},
+					)
+				}
 			}
 			userFeed != null -> {
 				Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -199,7 +221,7 @@ fun SearchScreen(onOpen: (Illust) -> Unit, onOpenUser: (PixivUser) -> Unit, vm: 
 				val tags = vm.trending.filter { AppPrefs.showAdult || it.illust?.isAdult != true }
 				LazyRow(contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
 					items(tags, key = { it.tag }) { t ->
-						AssistChip(onClick = { vm.searchUsers = false; vm.search(t.tag) }, label = { Text(tagLabel(t.tag, t.translatedName)) })
+						TagChip(t.tag, t.translatedName, onClick = { vm.searchUsers = false; vm.search(t.tag, Tag(t.tag, t.translatedName)) })
 					}
 				}
 			}
@@ -207,22 +229,65 @@ fun SearchScreen(onOpen: (Illust) -> Unit, onOpenUser: (PixivUser) -> Unit, vm: 
 	}
 }
 
-fun tagLabel(name: String, translated: String?): String = translated?.takeIf { it.isNotBlank() }?.let { "$name · $it" } ?: name
-
-/** Sort, match and time filters as three small dropdowns above the results. */
+/**
+ * What was searched, the way Pixiv shows a tag: the name in the phone's language on top and the original
+ * Japanese tag underneath. With no known translation only the words as typed appear.
+ */
 @Composable
-private fun SearchFilters(vm: SearchViewModel) {
+private fun SearchHeader(vm: SearchViewModel) {
+	val tag = vm.submittedTag
+	val translated = tag?.translatedName?.takeIf { it.isNotBlank() && !it.equals(tag.name, ignoreCase = true) }
+	Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+		Text(translated ?: tag?.name ?: vm.submitted, style = MaterialTheme.typography.titleMedium)
+		if (translated != null) Text(tag.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+	}
+}
+
+/** Newest on the left, popular on the right, like the official app and Materixiv. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SearchSections(vm: SearchViewModel) {
+	val index = if (vm.section == SearchViewModel.Section.NEWEST) 0 else 1
+	SecondaryTabRow(selectedTabIndex = index) {
+		Tab(selected = index == 0, onClick = { vm.section = SearchViewModel.Section.NEWEST }, text = { Text(stringResource(R.string.section_newest)) })
+		Tab(selected = index == 1, onClick = { vm.section = SearchViewModel.Section.POPULAR }, text = { Text(stringResource(R.string.section_popular)) })
+	}
+}
+
+/**
+ * A tag as Pixiv draws it: the translated name (in the phone's language) on top, the original Japanese tag in
+ * small type underneath. A tag with no translation, or whose translation is the same text, is a single line.
+ */
+@Composable
+fun TagChip(name: String, translated: String?, onClick: () -> Unit) {
+	val second = translated?.takeIf { it.isNotBlank() && !it.equals(name, ignoreCase = true) }
+	AssistChip(
+		onClick = onClick,
+		label = {
+			if (second == null) {
+				Text(name)
+			} else {
+				Column(Modifier.padding(vertical = 4.dp)) {
+					Text(second, style = MaterialTheme.typography.labelLarge)
+					Text(name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+				}
+			}
+		},
+	)
+}
+
+/** Match and time filters as small dropdowns above the results; the newest section also chooses its order. */
+@Composable
+private fun SearchFilters(vm: SearchViewModel, withSort: Boolean) {
 	Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-		Dropdown(
+		if (withSort) Dropdown(
 			label = when (vm.sort) {
 				SearchSort.DATE_DESC -> stringResource(R.string.sort_newest)
 				SearchSort.DATE_ASC -> stringResource(R.string.sort_oldest)
-				SearchSort.POPULAR_DESC -> stringResource(R.string.sort_popular)
 			},
 			options = listOf(
 				stringResource(R.string.sort_newest) to { vm.sort = SearchSort.DATE_DESC; vm.refilter() },
 				stringResource(R.string.sort_oldest) to { vm.sort = SearchSort.DATE_ASC; vm.refilter() },
-				stringResource(R.string.sort_popular) to { vm.sort = SearchSort.POPULAR_DESC; vm.refilter() },
 			),
 		)
 		Dropdown(

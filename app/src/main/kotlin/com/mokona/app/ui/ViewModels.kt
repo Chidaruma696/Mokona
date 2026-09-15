@@ -33,8 +33,10 @@ import com.mokona.app.data.UserDetail
 import com.mokona.app.data.UserPreview
 import com.mokona.app.data.UsersPage
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -169,9 +171,19 @@ class RankingViewModel : ViewModel() {
 }
 
 class SearchViewModel : ViewModel() {
+	/** The two halves of a search, as in the official app: what is new and what is popular for the same words. */
+	enum class Section { NEWEST, POPULAR }
+
 	var query by mutableStateOf("")
 	var submitted by mutableStateOf("")
 		private set
+	/**
+	 * The tag Pixiv matched to what was typed, when the words were a single tag. Typing "girl" resolves to 女の子
+	 * with "girl" as its translation, so the header can show both and the search runs on the real tag.
+	 */
+	var submittedTag by mutableStateOf<Tag?>(null)
+		private set
+	var section by mutableStateOf(Section.NEWEST)
 	var searchUsers by mutableStateOf(false)
 	var sort by mutableStateOf(SearchSort.DATE_DESC)
 	var target by mutableStateOf(SearchTarget.PARTIAL_TAGS)
@@ -181,6 +193,8 @@ class SearchViewModel : ViewModel() {
 	var suggestions by mutableStateOf<List<Tag>>(emptyList())
 		private set
 	var feed by mutableStateOf<IllustFeed?>(null)
+		private set
+	var popularFeed by mutableStateOf<IllustFeed?>(null)
 		private set
 	var userFeed by mutableStateOf<UserFeed?>(null)
 		private set
@@ -203,34 +217,49 @@ class SearchViewModel : ViewModel() {
 		}
 	}
 
-	/** Replaces the word being typed with the chosen suggestion. */
+	/** Replaces the word being typed with the chosen suggestion and searches it straight away. */
 	fun pickSuggestion(tag: Tag) {
 		val words = query.trim().split(Regex(" +")).toMutableList()
 		if (words.isNotEmpty()) words.removeAt(words.lastIndex)
 		words.add(tag.name)
-		query = words.joinToString(" ") + " "
 		suggestions = emptyList()
+		search(words.joinToString(" "), if (words.size == 1) tag else null)
 	}
 
-	fun search(word: String = query) {
+	/**
+	 * Runs a search. With [known] the tag is already resolved (a suggestion, a chip in a work). Otherwise a single
+	 * word is looked up first: if Pixiv knows it as the translation of a tag, the search uses that tag, so an
+	 * English or Spanish word finds the Japanese-tagged works exactly like the official app does.
+	 */
+	fun search(word: String = query, known: Tag? = null) {
 		val w = word.trim()
 		if (w.isEmpty()) return
-		query = w; submitted = w; suggestions = emptyList()
+		query = w; submitted = w; suggestions = emptyList(); submittedTag = known
 		if (searchUsers) {
-			feed = null
+			feed = null; popularFeed = null
 			userFeed = UserFeed { PixivApi.searchUsers(w) }.also { it.load(viewModelScope) }
-		} else {
-			userFeed = null
-			feed = IllustFeed { PixivApi.search(w, sort, target, duration) }.also { it.load(viewModelScope) }
+			return
 		}
+		userFeed = null
+		// Looked up once, shared by both sections; a failed lookup just searches the words as typed.
+		val resolved = viewModelScope.async(start = CoroutineStart.LAZY) {
+			if (known != null || w.contains(' ')) return@async known?.name ?: w
+			val tags = runCatching { PixivApi.autocomplete(w) }.getOrDefault(emptyList())
+			val tag = tags.firstOrNull { it.name.equals(w, ignoreCase = true) }
+				?: tags.firstOrNull { it.translatedName?.equals(w, ignoreCase = true) == true }
+			if (tag != null && submitted == w) submittedTag = tag
+			tag?.name ?: w
+		}
+		feed = IllustFeed { PixivApi.search(resolved.await(), sort, target, duration) }.also { it.load(viewModelScope) }
+		popularFeed = IllustFeed { PixivApi.searchPopular(resolved.await(), target, duration) }.also { it.load(viewModelScope) }
 	}
 
 	/** Re-runs the current search after a filter change. */
-	fun refilter() { if (submitted.isNotEmpty() && !searchUsers) search(submitted) }
+	fun refilter() { if (submitted.isNotEmpty() && !searchUsers) search(submitted, submittedTag) }
 
-	fun clear() { query = ""; submitted = ""; feed = null; userFeed = null; suggestions = emptyList() }
-	fun loadMore() { feed?.loadMore(viewModelScope); userFeed?.loadMore(viewModelScope) }
-	fun update(i: Illust) = feed?.update(i)
+	fun clear() { query = ""; submitted = ""; submittedTag = null; feed = null; popularFeed = null; userFeed = null; suggestions = emptyList() }
+	fun loadMore() { feed?.loadMore(viewModelScope); popularFeed?.loadMore(viewModelScope); userFeed?.loadMore(viewModelScope) }
+	fun update(i: Illust) { feed?.update(i); popularFeed?.update(i) }
 }
 
 /** Bookmarks tab: public, private, by tag, plus the browsing history. */

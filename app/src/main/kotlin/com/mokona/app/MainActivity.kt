@@ -144,7 +144,7 @@ private fun MokonaNav() {
 			onBack = { stack.removeAt(stack.lastIndex) },
 			onOpen = open,
 			onOpenUser = { openUser(it.id) },
-			onSearchTag = { tag -> stack.clear(); tab = Tab.SEARCH; searchVm.searchUsers = false; searchVm.search(tag) },
+			onSearchTag = { tag -> stack.clear(); tab = Tab.SEARCH; searchVm.searchUsers = false; searchVm.search(tag.name, tag) },
 			onView = { urls, index -> stack.add(Screen.Viewer(urls, index)) },
 			onRead = { stack.add(Screen.Reader(it)) },
 			onSeries = { stack.add(Screen.Series(it)) },
