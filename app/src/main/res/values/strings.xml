@@ -125,4 +125,7 @@
 	<string name="language">Language</string>
 	<string name="lang_system">Phone\'s</string>
 	<string name="onboarding_language_body">Mokona speaks English and Spanish. Leave English or pick one; it can change later in Settings.</string>
+	<string name="more">More</string>
+	<string name="comments_closed">The author has turned comments off for this work.</string>
+	<string name="download_failed">Page %1$d could not be saved: %2$s</string>
 </resources>

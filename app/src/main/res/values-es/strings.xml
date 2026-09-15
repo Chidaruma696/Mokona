@@ -124,4 +124,7 @@
 	<string name="language">Idioma</string>
 	<string name="lang_system">El del teléfono</string>
 	<string name="onboarding_language_body">Mokona habla inglés y español. Deja inglés o elige uno; se puede cambiar luego en Ajustes.</string>
+	<string name="more">Más</string>
+	<string name="comments_closed">El autor ha desactivado los comentarios en esta obra.</string>
+	<string name="download_failed">No se pudo guardar la página %1$d: %2$s</string>
 </resources>

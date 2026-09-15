@@ -4,6 +4,9 @@ import android.os.Build
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -56,12 +59,19 @@ object PixivApi {
 				if ((r.code == 400 || r.code == 401) && attempt == 0) {
 					token = PixivAuth.forceRefresh()
 				} else {
-					throw PixivException(r.code, text.take(300))
+					throw PixivException(r.code, errorMessage(text))
 				}
 			}
 		}
 		throw PixivException(0, "unreachable")
 	}
+
+	/** Pixiv's own words for a failure, when its error JSON carries any; empty otherwise, so the HTTP code speaks alone. */
+	fun errorMessage(body: String): String = runCatching {
+		val err = json.parseToJsonElement(body).jsonObject["error"]?.jsonObject ?: return@runCatching ""
+		listOf("user_message", "message", "reason")
+			.firstNotNullOfOrNull { err[it]?.jsonPrimitive?.contentOrNull?.takeIf(String::isNotBlank) } ?: ""
+	}.getOrDefault("")
 
 	private fun url(path: String, vararg params: Pair<String, String?>): HttpUrl {
 		val b = (BASE + path).toHttpUrl().newBuilder().addQueryParameter("filter", "for_android")
@@ -164,8 +174,9 @@ object PixivApi {
 
 	// ---- comments
 
+	/** v3 is what the official app reads today; v1 answers 404 for more and more works. A work whose author closed comments still 404s. */
 	suspend fun comments(illustId: Long): CommentsPage =
-		json.decodeFromString(call(url("v1/illust/comments", "illust_id" to illustId.toString())))
+		json.decodeFromString(call(url("v3/illust/comments", "illust_id" to illustId.toString())))
 
 	suspend fun nextComments(nextUrl: String): CommentsPage = json.decodeFromString(call(nextUrl.toHttpUrl()))
 
@@ -199,6 +210,6 @@ object PixivApi {
 	/** Downloads an original file or a ugoira zip (needs the Pixiv referer). */
 	suspend fun download(url: String): ByteArray = withContext(Dispatchers.IO) {
 		val r = client.newCall(Request.Builder().url(url).header("Referer", IMAGE_REFERER).header("User-Agent", userAgent).build()).execute()
-		r.use { if (!it.isSuccessful) throw PixivException(it.code, "download"); it.body.bytes() }
+		r.use { if (!it.isSuccessful) throw PixivException(it.code); it.body.bytes() }
 	}
 }

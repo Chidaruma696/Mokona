@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
@@ -27,6 +29,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -178,9 +181,9 @@ fun SearchScreen(onOpen: (Illust) -> Unit, onOpenUser: (PixivUser) -> Unit, vm: 
 			FilterChip(selected = vm.searchUsers, onClick = { vm.searchUsers = true; vm.clear() }, label = { Text(stringResource(R.string.artists)) })
 		}
 		if (vm.suggestions.isNotEmpty()) {
-			LazyRow(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-				items(vm.suggestions, key = { it.name }) { t -> TagChip(t.name, t.translatedName, onClick = { vm.pickSuggestion(t) }) }
-			}
+			// While typing, the suggestions take the place of the results, one per row, like Materixiv.
+			SuggestionList(vm.suggestions, onPick = { vm.pickSuggestion(it) })
+			return@Column
 		}
 		val feed = vm.feed
 		val popular = vm.popularFeed
@@ -225,6 +228,21 @@ fun SearchScreen(onOpen: (Illust) -> Unit, onOpenUser: (PixivUser) -> Unit, vm: 
 					}
 				}
 			}
+		}
+	}
+}
+
+/** One tag per row: its name in the phone's language first, the original Japanese underneath. */
+@Composable
+private fun SuggestionList(tags: List<Tag>, onPick: (Tag) -> Unit) {
+	LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 4.dp)) {
+		items(tags, key = { it.name }) { t ->
+			val translated = t.translatedName?.takeIf { it.isNotBlank() && !it.equals(t.name, ignoreCase = true) }
+			Column(Modifier.fillMaxWidth().clickable { onPick(t) }.padding(horizontal = 16.dp, vertical = 10.dp)) {
+				Text(translated ?: t.name, style = MaterialTheme.typography.bodyLarge)
+				if (translated != null) Text(t.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+			}
+			HorizontalDivider()
 		}
 	}
 }
