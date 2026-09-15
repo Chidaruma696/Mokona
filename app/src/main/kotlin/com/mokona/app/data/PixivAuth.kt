@@ -104,7 +104,7 @@ object PixivAuth {
 			.build()
 		http.newCall(request).execute().use { r ->
 			val body = r.body.string()
-			if (!r.isSuccessful) throw PixivException(r.code, body.take(300))
+			if (!r.isSuccessful) throw PixivException(r.code, PixivApi.errorMessage(body))
 			val t = json.decodeFromString<TokenResponse>(body)
 			accessToken = t.accessToken
 			refreshToken = t.refreshToken
@@ -149,4 +149,5 @@ object PixivAuth {
 	)
 }
 
-class PixivException(val code: Int, message: String) : Exception("HTTP $code: $message")
+/** A failed Pixiv call. [detail] is Pixiv's own explanation when it gave one; the text always ends with the HTTP code. */
+class PixivException(val code: Int, val detail: String = "") : Exception(if (detail.isBlank()) "HTTP $code" else "$detail (HTTP $code)")

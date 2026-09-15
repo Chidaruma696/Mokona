@@ -13,6 +13,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mokona.app.MokonaApp
+import com.mokona.app.R
+import com.mokona.app.data.PixivException
 import com.mokona.app.data.BookmarkTag
 import com.mokona.app.data.Comment
 import com.mokona.app.data.Illust
@@ -205,15 +207,34 @@ class SearchViewModel : ViewModel() {
 		viewModelScope.launch { runCatching { PixivApi.trendingTags() }.onSuccess { trending = it } }
 	}
 
-	/** Tag suggestions for the last word being typed, debounced. */
+	/** The word suggestions were last asked for, so an answer that arrives late for an older word is dropped. */
+	private var suggestedFor = ""
+
+	/**
+	 * Tag suggestions for the last word being typed, debounced, as a list under the field like Materixiv.
+	 * Pixiv returns tags by popularity, so they are reordered: what starts with the typed word first (by its
+	 * Japanese name or its translation), then what contains it, then the rest.
+	 */
 	fun onQueryChange(text: String) {
 		query = text
 		suggestJob?.cancel()
-		val word = text.trim().substringAfterLast(' ')
-		if (word.length < 2 || searchUsers) { suggestions = emptyList(); return }
+		val word = text.trimStart().substringAfterLast(' ').trim()
+		suggestedFor = word
+		if (word.isEmpty() || searchUsers) { suggestions = emptyList(); return }
 		suggestJob = viewModelScope.launch {
-			delay(300)
-			runCatching { PixivApi.autocomplete(word) }.onSuccess { suggestions = it }
+			delay(250)
+			val tags = runCatching { PixivApi.autocomplete(word) }.getOrNull() ?: return@launch
+			if (suggestedFor != word) return@launch
+			fun rank(t: Tag): Int {
+				val names = listOfNotNull(t.name, t.translatedName)
+				return when {
+					names.any { it.equals(word, ignoreCase = true) } -> 0
+					names.any { it.startsWith(word, ignoreCase = true) } -> 1
+					names.any { it.contains(word, ignoreCase = true) } -> 2
+					else -> 3
+				}
+			}
+			suggestions = tags.distinctBy { it.name }.sortedBy(::rank)
 		}
 	}
 
@@ -234,6 +255,7 @@ class SearchViewModel : ViewModel() {
 	fun search(word: String = query, known: Tag? = null) {
 		val w = word.trim()
 		if (w.isEmpty()) return
+		suggestJob?.cancel(); suggestedFor = ""
 		query = w; submitted = w; suggestions = emptyList(); submittedTag = known
 		if (searchUsers) {
 			feed = null; popularFeed = null
@@ -257,7 +279,10 @@ class SearchViewModel : ViewModel() {
 	/** Re-runs the current search after a filter change. */
 	fun refilter() { if (submitted.isNotEmpty() && !searchUsers) search(submitted, submittedTag) }
 
-	fun clear() { query = ""; submitted = ""; submittedTag = null; feed = null; popularFeed = null; userFeed = null; suggestions = emptyList() }
+	fun clear() {
+		suggestJob?.cancel(); suggestedFor = ""
+		query = ""; submitted = ""; submittedTag = null; feed = null; popularFeed = null; userFeed = null; suggestions = emptyList()
+	}
 	fun loadMore() { feed?.loadMore(viewModelScope); popularFeed?.loadMore(viewModelScope); userFeed?.loadMore(viewModelScope) }
 	fun update(i: Illust) { feed?.update(i); popularFeed?.update(i) }
 }
@@ -363,6 +388,12 @@ class DetailViewModel : ViewModel() {
 	private var commentsNext: String? = null
 	var commentsLoading by mutableStateOf(false)
 		private set
+	/** Why the comments could not be read, shown in their place. Pixiv answers 404 when the author closed them. */
+	var commentsError by mutableStateOf<String?>(null)
+		private set
+	var commentsClosed by mutableStateOf(false)
+		private set
+	/** A short notice at the bottom of the screen: failed action, saved file. */
 	var message by mutableStateOf<String?>(null)
 	var downloading by mutableStateOf(false)
 		private set
@@ -375,6 +406,7 @@ class DetailViewModel : ViewModel() {
 		if (illust?.id == id) return
 		illust = base
 		related = emptyList(); comments = emptyList(); commentsNext = null; totalComments = 0
+		commentsError = null; commentsClosed = false
 		ugoira?.stop(); ugoira = null
 		viewModelScope.launch {
 			runCatching { PixivApi.detail(id) }.onSuccess { illust = it }.onFailure { if (base == null) message = it.message }
@@ -392,9 +424,10 @@ class DetailViewModel : ViewModel() {
 		if (comments.isNotEmpty() && next == null) return
 		viewModelScope.launch {
 			commentsLoading = true
+			commentsError = null
 			runCatching { if (next != null) PixivApi.nextComments(next) else PixivApi.comments(i.id) }
 				.onSuccess { comments = comments + it.comments; commentsNext = it.nextUrl; totalComments = maxOf(totalComments, it.totalComments) }
-				.onFailure { message = it.message }
+				.onFailure { if ((it as? PixivException)?.code == 404) commentsClosed = true else commentsError = it.message }
 			commentsLoading = false
 		}
 	}
@@ -452,7 +485,7 @@ class DetailViewModel : ViewModel() {
 						resolver.openOutputStream(uri)!!.use { it.write(bytes) }
 						uri
 					}
-				}.onSuccess { saved.add(it) }.onFailure { message = it.message }
+				}.onSuccess { saved.add(it) }.onFailure { message = MokonaApp.appContext.getString(R.string.download_failed, index + 1, it.message ?: it.toString()) }
 			}
 			downloading = false
 			onDone(saved)

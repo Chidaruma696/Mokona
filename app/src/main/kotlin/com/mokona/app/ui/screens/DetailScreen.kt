@@ -35,7 +35,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -122,9 +121,20 @@ fun DetailScreen(
 					)
 				}
 				IconButton(onClick = { share(context, illust) }) { Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share)) }
+				if (vm.downloading || vm.encoding) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
 				Box {
-					IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, contentDescription = null) }
+					IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more)) }
 					DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+						DropdownMenuItem(
+							text = { Text(if (illust.pageCount > 1) stringResource(R.string.download_all, illust.pageCount) else stringResource(R.string.download)) },
+							enabled = !vm.downloading,
+							onClick = { menu = false; vm.download { n -> snack = savedText.format(n.size) } },
+						)
+						if (illust.isAnimated) DropdownMenuItem(
+							text = { Text(stringResource(R.string.download_video)) },
+							enabled = !vm.encoding,
+							onClick = { menu = false; vm.downloadVideo { snack = savedVideoText } },
+						)
 						DropdownMenuItem(text = { Text(stringResource(R.string.open_in_pixiv)) }, onClick = { menu = false; context.openUrl(illust.webUrl) })
 						DropdownMenuItem(
 							text = { Text(stringResource(R.string.set_wallpaper)) },
@@ -196,16 +206,6 @@ fun DetailScreen(
 					}
 					illust.series?.let { s -> TextButton(onClick = { onSeries(s.id) }) { Text(stringResource(R.string.view_series)) } }
 				}
-				Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-					FilledTonalButton(onClick = { vm.download { n -> snack = savedText.format(n.size) } }, enabled = !vm.downloading) {
-						Text(if (illust.pageCount > 1) stringResource(R.string.download_all, illust.pageCount) else stringResource(R.string.download))
-					}
-					if (vm.downloading) CircularProgressIndicator(Modifier.size(20.dp))
-					if (illust.isAnimated) {
-						FilledTonalButton(onClick = { vm.downloadVideo { snack = savedVideoText } }, enabled = !vm.encoding) { Text(stringResource(R.string.download_video)) }
-						if (vm.encoding) CircularProgressIndicator(Modifier.size(20.dp))
-					}
-				}
 				illust.series?.let { s ->
 					Text(stringResource(R.string.series_of, s.title), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.clickable { onSeries(s.id) })
 				}
@@ -246,6 +246,14 @@ private fun CommentsSection(vm: DetailViewModel, onOpenUser: (PixivUser) -> Unit
 				}
 				Text(c.comment, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 46.dp))
 			}
+		}
+		if (vm.commentsClosed) {
+			Text(stringResource(R.string.comments_closed), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+			return@Column
+		}
+		vm.commentsError?.let { e ->
+			Text(e, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+			TextButton(onClick = { vm.loadComments() }) { Text(stringResource(R.string.retry)) }
 		}
 		if (vm.commentsLoading) CircularProgressIndicator(Modifier.size(20.dp))
 		else if (vm.hasMoreComments) TextButton(onClick = { vm.loadComments() }) { Text(stringResource(R.string.more_comments)) }
