@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -67,6 +66,7 @@ import coil3.compose.AsyncImage
 import com.mokona.app.R
 import com.mokona.app.data.Illust
 import com.mokona.app.data.PixivUser
+import com.mokona.app.data.Tag
 import com.mokona.app.data.Restrict
 import com.mokona.app.ui.AppPrefs
 import com.mokona.app.ui.DetailViewModel
@@ -79,7 +79,7 @@ fun DetailScreen(
 	onBack: () -> Unit,
 	onOpen: (Illust) -> Unit,
 	onOpenUser: (PixivUser) -> Unit,
-	onSearchTag: (String) -> Unit,
+	onSearchTag: (Tag) -> Unit,
 	onView: (List<String>, Int) -> Unit,
 	onRead: (Illust) -> Unit,
 	onSeries: (Long) -> Unit,
@@ -187,7 +187,7 @@ fun DetailScreen(
 				)
 				LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
 					items(illust.tags, key = { it.name }) { tag ->
-						AssistChip(onClick = { onSearchTag(tag.name) }, label = { Text(tagLabel(tag.name, tag.translatedName)) })
+						TagChip(tag.name, tag.translatedName, onClick = { onSearchTag(tag) })
 					}
 				}
 				Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {

@@ -111,6 +111,22 @@ object PixivApi {
 		),
 	)
 
+	/**
+	 * The most popular works for a search, as the official app shows them above the newest ones.
+	 * Pixiv gives everybody a preview of about thirty works here; the full popular order is premium-only.
+	 */
+	suspend fun searchPopular(
+		word: String,
+		target: SearchTarget = SearchTarget.PARTIAL_TAGS,
+		duration: SearchDuration = SearchDuration.ALL,
+	): IllustsPage = illusts(
+		url(
+			"v1/search/popular-preview/illust",
+			"word" to word, "search_target" to target.id, "duration" to duration.id,
+			"merge_plain_keyword_results" to "true", "include_translated_tag_results" to "true",
+		),
+	)
+
 	suspend fun related(illustId: Long): IllustsPage = illusts(url("v2/illust/related", "illust_id" to illustId.toString()))
 
 	suspend fun userIllusts(userId: Long, type: String = "illust"): IllustsPage =

@@ -106,7 +106,9 @@
 	<string name="send">Send</string>
 	<string name="sort_newest">Newest</string>
 	<string name="sort_oldest">Oldest</string>
-	<string name="sort_popular">Popular</string>
+	<string name="section_newest">Newest</string>
+	<string name="section_popular">Popular</string>
+	<string name="popular_preview_note">Pixiv shows everyone a preview of the most popular works; the full list needs Pixiv Premium.</string>
 	<string name="target_partial">Tags (partial)</string>
 	<string name="target_exact">Tags (exact)</string>
 	<string name="target_title">Title and caption</string>

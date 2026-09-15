@@ -105,7 +105,9 @@
 	<string name="send">Enviar</string>
 	<string name="sort_newest">Más nuevas</string>
 	<string name="sort_oldest">Más antiguas</string>
-	<string name="sort_popular">Populares</string>
+	<string name="section_newest">Recientes</string>
+	<string name="section_popular">Populares</string>
+	<string name="popular_preview_note">Pixiv enseña a todo el mundo una muestra de las obras más populares; la lista completa pide Pixiv Premium.</string>
 	<string name="target_partial">Etiquetas (parcial)</string>
 	<string name="target_exact">Etiquetas (exacto)</string>
 	<string name="target_title">Título y descripción</string>

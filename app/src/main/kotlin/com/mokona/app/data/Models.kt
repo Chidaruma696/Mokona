@@ -188,7 +188,8 @@ data class RankingMode(val id: String, val adult: Boolean) {
 	}
 }
 
-enum class SearchSort(val id: String) { DATE_DESC("date_desc"), DATE_ASC("date_asc"), POPULAR_DESC("popular_desc") }
+/** Order of the "newest" section. Popular order is not a sort here: it is the other section of the search, see PixivApi.searchPopular. */
+enum class SearchSort(val id: String) { DATE_DESC("date_desc"), DATE_ASC("date_asc") }
 enum class SearchTarget(val id: String) { PARTIAL_TAGS("partial_match_for_tags"), EXACT_TAGS("exact_match_for_tags"), TITLE_CAPTION("title_and_caption") }
 enum class SearchDuration(val id: String?) { ALL(null), LAST_DAY("within_last_day"), LAST_WEEK("within_last_week"), LAST_MONTH("within_last_month") }
 enum class Restrict(val id: String) { PUBLIC("public"), PRIVATE("private") }
