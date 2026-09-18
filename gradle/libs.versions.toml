@@ -15,6 +15,7 @@ mlkitText = "16.0.1"
 mlkitTranslate = "17.0.3"
 coroutinesPlay = "1.10.2"
 work = "2.10.5"
+junit = "4.13.2"
 
 [libraries]
 coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
@@ -42,6 +43,7 @@ mlkit-text-korean = { module = "com.google.mlkit:text-recognition-korean", versi
 mlkit-translate = { module = "com.google.mlkit:translate", version.ref = "mlkitTranslate" }
 coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutinesPlay" }
 androidx-work = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
+junit = { module = "junit:junit", version.ref = "junit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

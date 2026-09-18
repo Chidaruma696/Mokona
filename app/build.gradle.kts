@@ -78,6 +78,13 @@ android {
 		getByName("main") {
 			java.srcDir("src/main/kotlin")
 		}
+		getByName("test") {
+			java.srcDir("src/test/kotlin")
+		}
+	}
+
+	testOptions {
+		unitTests.isReturnDefaultValues = true
 	}
 
 	packaging {
@@ -117,4 +124,6 @@ dependencies {
 	implementation(libs.coroutines.play.services)
 	// Wallpaper rotation in the background.
 	implementation(libs.androidx.work)
+
+	testImplementation(libs.junit)
 }
