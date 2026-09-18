@@ -113,20 +113,6 @@ fun SettingsScreen(onLogin: () -> Unit, onWallpaperLists: () -> Unit = {}) {
 			SectionTitle(stringResource(R.string.reader_section))
 			Card(Modifier.padding(horizontal = 12.dp)) {
 				ListItem(
-					headlineContent = { Text(stringResource(R.string.ocr_source)) },
-					supportingContent = {
-						Column {
-							Text(stringResource(R.string.ocr_source_summary))
-							Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
-								FilterChip(selected = AppPrefs.ocrSource == PageTranslator.Source.JAPANESE, onClick = { AppPrefs.updateOcrSource(PageTranslator.Source.JAPANESE) }, label = { Text(stringResource(R.string.lang_japanese)) })
-								FilterChip(selected = AppPrefs.ocrSource == PageTranslator.Source.CHINESE, onClick = { AppPrefs.updateOcrSource(PageTranslator.Source.CHINESE) }, label = { Text(stringResource(R.string.lang_chinese)) })
-								FilterChip(selected = AppPrefs.ocrSource == PageTranslator.Source.KOREAN, onClick = { AppPrefs.updateOcrSource(PageTranslator.Source.KOREAN) }, label = { Text(stringResource(R.string.lang_korean)) })
-								FilterChip(selected = AppPrefs.ocrSource == PageTranslator.Source.ENGLISH, onClick = { AppPrefs.updateOcrSource(PageTranslator.Source.ENGLISH) }, label = { Text(stringResource(R.string.lang_english)) })
-							}
-						}
-					},
-				)
-				ListItem(
 					headlineContent = { Text(stringResource(R.string.translation_style)) },
 					supportingContent = {
 						Column {

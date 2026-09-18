@@ -138,7 +138,7 @@
 	<string name="translate_translating">Traduciendo…</string>
 	<string name="reader_section">Lector</string>
 	<string name="ocr_source">Idioma que lee el traductor</string>
-	<string name="ocr_source_summary">El botón 訳 sobre cualquier imagen lee la página en el teléfono y traduce cada globo al idioma de la app. Toca un globo para ver el original.</string>
+	<string name="ocr_source_summary">El botón 訳 sobre cualquier imagen reconoce solo si la página está en japonés, chino, coreano o inglés y traduce cada línea al idioma de la app.</string>
 	<!-- Fondo de pantalla -->
 	<string name="wallpaper">Fondo de pantalla</string>
 	<string name="wallpaper_enabled">Cambiar el fondo solo</string>
@@ -218,4 +218,5 @@
 	<string name="style_notes">Notas</string>
 	<string name="style_overlay">Sobre la imagen</string>
 	<string name="no_text_found">No se encontró texto en esta página</string>
+	<string name="detected_language">Detectado: %s</string>
 </resources>

@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -180,21 +179,20 @@ fun TranslationNotesSheet(translation: PageTranslator.Result, selected: Int?, on
 	}
 }
 
-/** Script chips, text size and the state of the translator, shown while the overlay is on. */
 @Composable
-fun TranslationBar(source: PageTranslator.Source, onSource: (PageTranslator.Source) -> Unit, status: PageTranslator.Status, modifier: Modifier = Modifier) {
+fun sourceName(source: PageTranslator.Source): String = when (source) {
+	PageTranslator.Source.JAPANESE -> stringResource(R.string.lang_japanese)
+	PageTranslator.Source.CHINESE -> stringResource(R.string.lang_chinese)
+	PageTranslator.Source.KOREAN -> stringResource(R.string.lang_korean)
+	PageTranslator.Source.ENGLISH -> stringResource(R.string.lang_english)
+}
+
+/** The language the page turned out to be in, text size and the state of the translator. */
+@Composable
+fun TranslationBar(detected: PageTranslator.Source?, status: PageTranslator.Status, modifier: Modifier = Modifier) {
 	Row(modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-		PageTranslator.Source.entries.forEach { s ->
-			FilterChip(selected = source == s, onClick = { onSource(s) }, label = {
-				Text(
-					when (s) {
-						PageTranslator.Source.JAPANESE -> stringResource(R.string.lang_japanese)
-						PageTranslator.Source.CHINESE -> stringResource(R.string.lang_chinese)
-						PageTranslator.Source.KOREAN -> stringResource(R.string.lang_korean)
-						PageTranslator.Source.ENGLISH -> stringResource(R.string.lang_english)
-					},
-				)
-			})
+		if (detected != null) {
+			Text(stringResource(R.string.detected_language, sourceName(detected)), color = NoteColor, style = MaterialTheme.typography.labelMedium)
 		}
 		IconButton(onClick = { AppPrefs.updateTranslationTextSize(AppPrefs.translationTextSize - 2) }) { Text("A−", color = Color.White, style = MaterialTheme.typography.labelLarge) }
 		IconButton(onClick = { AppPrefs.updateTranslationTextSize(AppPrefs.translationTextSize + 2) }) { Text("A+", color = Color.White, style = MaterialTheme.typography.labelLarge) }

@@ -139,7 +139,7 @@
 	<string name="translate_translating">Translating…</string>
 	<string name="reader_section">Reader</string>
 	<string name="ocr_source">Language the translator reads</string>
-	<string name="ocr_source_summary">The 訳 button on any picture reads the page on the phone and translates each bubble into the app\'s language. Tap a bubble to see the original.</string>
+	<string name="ocr_source_summary">The 訳 button on any picture works out by itself whether the page is Japanese, Chinese, Korean or English and translates each line into the app\'s language.</string>
 	<!-- Wallpaper -->
 	<string name="wallpaper">Wallpaper</string>
 	<string name="wallpaper_enabled">Change the wallpaper by itself</string>
@@ -219,4 +219,5 @@
 	<string name="style_notes">Notes</string>
 	<string name="style_overlay">Over the picture</string>
 	<string name="no_text_found">No text found on this page</string>
+	<string name="detected_language">Detected: %s</string>
 </resources>

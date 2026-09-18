@@ -45,14 +45,13 @@ fun ViewerScreen(urls: List<String>, startIndex: Int, onClose: () -> Unit) {
 	val pager = rememberPagerState(initialPage = startIndex.coerceIn(0, (urls.size - 1).coerceAtLeast(0))) { urls.size }
 	val context = LocalContext.current
 	var translating by remember { mutableStateOf(false) }
-	var source by remember { mutableStateOf(AppPrefs.ocrSource) }
 	var status by remember { mutableStateOf<PageTranslator.Status>(PageTranslator.Status.Idle) }
 	val translations = remember { mutableStateMapOf<String, PageTranslator.Result>() }
-	LaunchedEffect(translating, pager.currentPage, source) {
+	LaunchedEffect(translating, pager.currentPage) {
 		if (!translating) return@LaunchedEffect
 		val url = urls.getOrNull(pager.currentPage) ?: return@LaunchedEffect
-		if (translations.containsKey("$source:$url")) return@LaunchedEffect
-		runCatching { translations["$source:$url"] = PageTranslator.translate(context, url, source) { status = it } }
+		if (translations.containsKey(url)) return@LaunchedEffect
+		runCatching { translations[url] = PageTranslator.translate(context, url) { status = it } }
 			.onFailure { status = PageTranslator.Status.Failed(it.message ?: it.javaClass.simpleName) }
 	}
 	var selected by remember { mutableStateOf<Pair<String, Int>?>(null) }
@@ -60,10 +59,10 @@ fun ViewerScreen(urls: List<String>, startIndex: Int, onClose: () -> Unit) {
 	Box(Modifier.fillMaxSize().background(Color.Black)) {
 		HorizontalPager(state = pager, modifier = Modifier.fillMaxSize(), key = { urls[it] }) { page ->
 			val url = urls[page]
-			ZoomableImage(url, if (translating) translations["$source:$url"] else null, selected?.takeIf { it.first == url }?.second) { pick(url, it) }
+			ZoomableImage(url, if (translating) translations[url] else null, selected?.takeIf { it.first == url }?.second) { pick(url, it) }
 		}
 		val currentUrl = urls.getOrNull(pager.currentPage)
-		val t = if (translating && currentUrl != null) translations["$source:$currentUrl"] else null
+		val t = if (translating && currentUrl != null) translations[currentUrl] else null
 		if (t != null && currentUrl != null && AppPrefs.translationNotes) {
 			TranslationNotesSheet(t, selected?.takeIf { it.first == currentUrl }?.second, { pick(currentUrl, it) }, Modifier.align(Alignment.BottomCenter).padding(bottom = 64.dp))
 		}
@@ -78,7 +77,7 @@ fun ViewerScreen(urls: List<String>, startIndex: Int, onClose: () -> Unit) {
 				}
 			}
 			if (translating) {
-				TranslationBar(source, onSource = { source = it; AppPrefs.updateOcrSource(it) }, status = status, modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 12.dp))
+				TranslationBar(t?.source, status = status, modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 12.dp))
 			}
 		}
 	}

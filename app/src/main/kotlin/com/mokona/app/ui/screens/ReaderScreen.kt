@@ -60,20 +60,18 @@ fun ReaderScreen(illust: Illust, onClose: () -> Unit, onView: (List<String>, Int
 	// Manga in your language: the overlay reads and translates the pages on screen, one ahead.
 	val context = LocalContext.current
 	var translating by remember { mutableStateOf(false) }
-	var source by remember { mutableStateOf(AppPrefs.ocrSource) }
 	var status by remember { mutableStateOf<PageTranslator.Status>(PageTranslator.Status.Idle) }
 	val translations = remember { mutableStateMapOf<String, PageTranslator.Result>() }
-	LaunchedEffect(translating, current, source) {
+	LaunchedEffect(translating, current) {
 		if (!translating) return@LaunchedEffect
 		for (i in listOf(current, current + 1)) {
 			val url = pages.getOrNull(i) ?: continue
-			val key = "$source:$url"
-			if (translations.containsKey(key)) continue
-			runCatching { translations[key] = PageTranslator.translate(context, url, source) { status = it } }
+			if (translations.containsKey(url)) continue
+			runCatching { translations[url] = PageTranslator.translate(context, url) { status = it } }
 				.onFailure { status = PageTranslator.Status.Failed(it.message ?: it.javaClass.simpleName) }
 		}
 	}
-	fun translationOf(url: String) = if (translating) translations["$source:$url"] else null
+	fun translationOf(url: String) = if (translating) translations[url] else null
 	// Which note is highlighted, per page (url → index).
 	var selected by remember { mutableStateOf<Pair<String, Int>?>(null) }
 	fun pick(url: String, i: Int) { selected = if (selected == url to i) null else url to i }
@@ -135,7 +133,7 @@ fun ReaderScreen(illust: Illust, onClose: () -> Unit, onView: (List<String>, Int
 				}
 			}
 			if (translating) {
-				TranslationBar(source, onSource = { source = it; AppPrefs.updateOcrSource(it) }, status = status, modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 40.dp))
+				TranslationBar(translationOf(pages.getOrNull(current) ?: "")?.source, status = status, modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 40.dp))
 			}
 			Text("${current + 1}/${pages.size}", color = Color.White, modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp))
 		}

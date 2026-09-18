@@ -169,16 +169,15 @@ fun DetailScreen(
 			val player = vm.ugoira
 			// Any picture, one button: 訳 reads and translates the page on screen right here.
 			var translating by remember { mutableStateOf(false) }
-			var source by remember { mutableStateOf(AppPrefs.ocrSource) }
 			var status by remember { mutableStateOf<PageTranslator.Status>(PageTranslator.Status.Idle) }
 			val translations = remember { mutableStateMapOf<String, PageTranslator.Result>() }
 			var selectedNote by remember { mutableStateOf<Int?>(null) }
 			LaunchedEffect(pager.currentPage) { selectedNote = null }
-			LaunchedEffect(translating, pager.currentPage, source) {
+			LaunchedEffect(translating, pager.currentPage) {
 				if (!translating) return@LaunchedEffect
 				val url = pages.getOrNull(pager.currentPage) ?: return@LaunchedEffect
-				if (translations.containsKey("$source:$url")) return@LaunchedEffect
-				runCatching { translations["$source:$url"] = PageTranslator.translate(context, url, source) { status = it } }
+				if (translations.containsKey(url)) return@LaunchedEffect
+				runCatching { translations[url] = PageTranslator.translate(context, url) { status = it } }
 					.onFailure { status = PageTranslator.Status.Failed(it.message ?: it.javaClass.simpleName) }
 			}
 			Box(Modifier.fillMaxWidth().background(Color.Black)) {
@@ -197,7 +196,7 @@ fun DetailScreen(
 					if (bmp != null) LinearProgressIndicator(progress = { player.progress }, modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter))
 				} else {
 					HorizontalPager(state = pager, modifier = Modifier.fillMaxWidth()) { page ->
-						val t = if (translating) translations["$source:${pages[page]}"] else null
+						val t = if (translating) translations[pages[page]] else null
 						if (t != null) {
 							TranslatablePage(
 								pages[page], t, ContentScale.Fit, Modifier.fillMaxWidth().aspectRatio(illust.aspectRatio.coerceIn(0.6f, 1.8f)),
@@ -217,12 +216,12 @@ fun DetailScreen(
 						Text("訳", color = if (translating) Color(0xFFFFD54F) else Color.White, style = MaterialTheme.typography.titleMedium)
 					}
 					if (translating) {
-						TranslationBar(source, onSource = { source = it; AppPrefs.updateOcrSource(it) }, status = status, modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 4.dp))
+						TranslationBar(translations[pages.getOrNull(pager.currentPage)]?.source, status = status, modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 4.dp))
 					}
 				}
 			}
 			// The translated lines, right under the picture, like Danbooru's notes.
-			val currentTranslation = if (translating) translations["$source:${pages.getOrNull(pager.currentPage)}"] else null
+			val currentTranslation = if (translating) translations[pages.getOrNull(pager.currentPage)] else null
 			if (currentTranslation != null && AppPrefs.translationNotes) {
 				Card(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
 					TranslationNotes(currentTranslation, selectedNote, { selectedNote = if (selectedNote == it) null else it }, Modifier.padding(vertical = 6.dp))
