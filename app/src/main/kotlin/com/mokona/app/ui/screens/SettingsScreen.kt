@@ -127,6 +127,19 @@ fun SettingsScreen(onLogin: () -> Unit, onWallpaperLists: () -> Unit = {}) {
 					},
 				)
 				ListItem(
+					headlineContent = { Text(stringResource(R.string.translation_text_size)) },
+					supportingContent = {
+						Column {
+							Text(stringResource(R.string.translation_text_size_summary))
+							Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
+								listOf(10 to R.string.size_small, 14 to R.string.size_normal, 18 to R.string.size_large, 24 to R.string.size_huge).forEach { (sp, label) ->
+									FilterChip(selected = AppPrefs.translationTextSize == sp, onClick = { AppPrefs.updateTranslationTextSize(sp) }, label = { Text(stringResource(label)) })
+								}
+							}
+						}
+					},
+				)
+				ListItem(
 					headlineContent = { Text(stringResource(R.string.translate_mode)) },
 					supportingContent = {
 						Column {

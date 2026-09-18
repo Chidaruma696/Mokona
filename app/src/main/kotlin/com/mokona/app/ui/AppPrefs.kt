@@ -47,6 +47,9 @@ object AppPrefs {
 	/** Translate with the offline dictionaries (downloaded in Settings) instead of online. Off by default. */
 	var translateOffline by mutableStateOf(false)
 		private set
+	/** Size of the translated text, in sp. The box grows around it; the text never shrinks to fit. */
+	var translationTextSize by mutableStateOf(14)
+		private set
 
 	fun init(context: Context) {
 		val p = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -61,6 +64,7 @@ object AppPrefs {
 		readerHorizontal = p.getBoolean("reader_horizontal", false)
 		ocrSource = runCatching { PageTranslator.Source.valueOf(p.getString("ocr_source", "JAPANESE")!!) }.getOrDefault(PageTranslator.Source.JAPANESE)
 		translateOffline = p.getBoolean("translate_offline", false)
+		translationTextSize = p.getInt("translation_text_size", 14)
 		AppLanguage.current = language
 		AppLanguage.offline = translateOffline
 	}
@@ -69,6 +73,7 @@ object AppPrefs {
 
 	fun updateLanguage(value: String) { language = value; AppLanguage.current = value; prefs().edit { putString("language", value) }; applyLanguage() }
 	fun updateOcrSource(value: PageTranslator.Source) { ocrSource = value; prefs().edit { putString("ocr_source", value.name) } }
+	fun updateTranslationTextSize(value: Int) { translationTextSize = value.coerceIn(8, 32); prefs().edit { putInt("translation_text_size", translationTextSize) } }
 	fun updateTranslateOffline(value: Boolean) { translateOffline = value; AppLanguage.offline = value; prefs().edit { putBoolean("translate_offline", value) } }
 
 	/** Makes the app speak the chosen language; recreates the activity when it changes. */

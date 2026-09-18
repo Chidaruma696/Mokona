@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -26,9 +24,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
+import com.mokona.app.ui.AppPrefs
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -53,27 +52,34 @@ fun TranslatablePage(url: String, translation: PageTranslator.Result?, contentSc
 			val drawnH = translation.height * scale
 			val ox = if (contentScale == ContentScale.Fit) (cw - drawnW) / 2f else 0f
 			val oy = if (contentScale == ContentScale.Fit) (ch - drawnH) / 2f else 0f
+			val textSize = AppPrefs.translationTextSize.sp
+			// A bubble is as wide as the original box, but at least wide enough to read, and as tall as
+			// the text needs at the chosen size: readable first, faithful to the box second.
+			val minW = (cw * 0.22f).toInt()
+			val maxW = (cw * 0.6f).toInt()
 			translation.bubbles.forEach { b ->
 				var original by remember(b) { mutableStateOf(false) }
-				val x = ox + b.box.left * scale
-				val y = oy + b.box.top * scale
-				val w = (b.box.width() * scale).coerceAtLeast(24f)
-				val h = (b.box.height() * scale).coerceAtLeast(16f)
+				val cx = ox + (b.box.left + b.box.width() / 2f) * scale
+				val cy = oy + (b.box.top + b.box.height() / 2f) * scale
+				val boxW = (b.box.width() * scale).toInt().coerceIn(minW, maxW)
 				Box(
-					Modifier
-						.offset { IntOffset(x.toInt(), y.toInt()) }
-						.size(with(density) { w.toDp() }, with(density) { h.toDp() })
-						.background(if (original) Color(0xF2FFF7C2) else Color(0xF2FFFFFF), RoundedCornerShape(4.dp))
-						.clickable { original = !original }
-						.padding(2.dp),
-					contentAlignment = Alignment.Center,
+					Modifier.layout { measurable, _ ->
+						val p = measurable.measure(Constraints(minWidth = boxW, maxWidth = maxW))
+						val x = (cx - p.width / 2f).toInt().coerceIn(0, (cw - p.width).toInt().coerceAtLeast(0))
+						val y = (cy - p.height / 2f).toInt().coerceIn(0, (ch - p.height).toInt().coerceAtLeast(0))
+						layout(cw.toInt(), ch.toInt()) { p.place(x, y) }
+					},
 				) {
 					Text(
 						if (original) b.original else b.translated,
 						color = Color.Black,
+						fontSize = textSize,
+						lineHeight = textSize * 1.15f,
 						textAlign = TextAlign.Center,
-						autoSize = TextAutoSize.StepBased(minFontSize = 6.sp, maxFontSize = 20.sp, stepSize = 1.sp),
-						modifier = Modifier.fillMaxSize(),
+						modifier = Modifier
+							.background(if (original) Color(0xF2FFF7C2) else Color(0xF2FFFFFF), RoundedCornerShape(4.dp))
+							.clickable { original = !original }
+							.padding(horizontal = 4.dp, vertical = 2.dp),
 					)
 				}
 			}
@@ -97,6 +103,8 @@ fun TranslationBar(source: PageTranslator.Source, onSource: (PageTranslator.Sour
 				)
 			})
 		}
+		androidx.compose.material3.IconButton(onClick = { AppPrefs.updateTranslationTextSize(AppPrefs.translationTextSize - 2) }) { Text("A−", color = Color.White, style = MaterialTheme.typography.labelLarge) }
+		androidx.compose.material3.IconButton(onClick = { AppPrefs.updateTranslationTextSize(AppPrefs.translationTextSize + 2) }) { Text("A+", color = Color.White, style = MaterialTheme.typography.labelLarge) }
 		Text(
 			when (status) {
 				PageTranslator.Status.Idle -> ""

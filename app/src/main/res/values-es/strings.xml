@@ -207,4 +207,10 @@
 	<string name="downloads_done">Descargas terminadas</string>
 	<string name="downloads_empty">Todavía no hay nada guardado. Usa \"Guardar para leer sin conexión\" en el menú de cualquier obra.</string>
 	<string name="downloads_count">%1$d obra(s) · %2$d MB en el teléfono</string>
+	<string name="translation_text_size">Tamaño de la letra traducida</string>
+	<string name="translation_text_size_summary">El globo crece alrededor del texto; la letra nunca se encoge para caber. A− y A+ en la barra del traductor también lo cambian.</string>
+	<string name="size_small">Pequeña</string>
+	<string name="size_normal">Normal</string>
+	<string name="size_large">Grande</string>
+	<string name="size_huge">Enorme</string>
 </resources>

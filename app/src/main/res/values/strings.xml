@@ -208,4 +208,10 @@
 	<string name="downloads_done">Downloads finished</string>
 	<string name="downloads_empty">Nothing saved yet. Use \"Save to read offline\" in the menu of any work.</string>
 	<string name="downloads_count">%1$d work(s) · %2$d MB on the phone</string>
+	<string name="translation_text_size">Translated text size</string>
+	<string name="translation_text_size_summary">The bubble grows around the text; it never shrinks to fit. A− and A+ in the translator bar change it too.</string>
+	<string name="size_small">Small</string>
+	<string name="size_normal">Normal</string>
+	<string name="size_large">Large</string>
+	<string name="size_huge">Huge</string>
 </resources>
