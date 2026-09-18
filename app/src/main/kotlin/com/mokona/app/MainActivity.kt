@@ -28,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -119,7 +120,12 @@ private fun MokonaNav() {
 	val bookmarksVm: BookmarksViewModel = viewModel()
 
 	val top = stack.lastOrNull()
-	BackHandler(enabled = top != null) { stack.removeAt(stack.lastIndex) }
+	// Each screen keeps its rememberSaveable state (scroll positions above all) while another one
+	// covers it: coming back from a work lands where you left the grid, not at the top.
+	val holder = rememberSaveableStateHolder()
+	fun keyOf(index: Int) = "$index:${stack[index]}"
+	val pop = { holder.removeState(keyOf(stack.lastIndex)); stack.removeAt(stack.lastIndex); Unit }
+	val popAll = { stack.indices.forEach { holder.removeState(keyOf(it)) }; stack.clear() }
 
 	val open: (Illust) -> Unit = { stack.add(Screen.Detail(it.id, it)) }
 	val openUser: (Long) -> Unit = { id -> if (stack.lastOrNull() != Screen.Artist(id)) stack.add(Screen.Artist(id)) }
@@ -137,29 +143,31 @@ private fun MokonaNav() {
 	val pendingUser = LinkBridge.pendingUser
 	LaunchedEffect(pendingUser) { if (pendingUser != null) { LinkBridge.pendingUser = null; openUser(pendingUser) } }
 
-	when (top) {
+	BackHandler(enabled = top != null) { pop() }
+	val screenKey = if (top == null) "tabs" else keyOf(stack.lastIndex)
+	holder.SaveableStateProvider(screenKey) { when (top) {
 		is Screen.Detail -> DetailScreen(
 			id = top.id,
 			base = top.illust,
-			onBack = { stack.removeAt(stack.lastIndex) },
+			onBack = { pop() },
 			onOpen = open,
 			onOpenUser = { openUser(it.id) },
-			onSearchTag = { tag -> stack.clear(); tab = Tab.SEARCH; searchVm.searchUsers = false; searchVm.search(tag.name, tag) },
+			onSearchTag = { tag -> popAll(); tab = Tab.SEARCH; searchVm.searchUsers = false; searchVm.search(tag.name, tag) },
 			onView = { urls, index -> stack.add(Screen.Viewer(urls, index)) },
 			onRead = { stack.add(Screen.Reader(it)) },
 			onSeries = { stack.add(Screen.Series(it)) },
 			onChanged = changed,
 		)
-		is Screen.Reader -> ReaderScreen(top.illust, onClose = { stack.removeAt(stack.lastIndex) }, onView = { urls, index -> stack.add(Screen.Viewer(urls, index)) })
-		is Screen.Series -> SeriesScreen(top.seriesId, onBack = { stack.removeAt(stack.lastIndex) }, onOpen = open)
+		is Screen.Reader -> ReaderScreen(top.illust, onClose = { pop() }, onView = { urls, index -> stack.add(Screen.Viewer(urls, index)) })
+		is Screen.Series -> SeriesScreen(top.seriesId, onBack = { pop() }, onOpen = open)
 		is Screen.Artist -> ArtistScreen(
 			userId = top.userId,
-			onBack = { stack.removeAt(stack.lastIndex) },
+			onBack = { pop() },
 			onOpen = open,
 			onOpenUser = { openUser(it.id) },
 		)
-		is Screen.Viewer -> ViewerScreen(top.urls, top.index, onClose = { stack.removeAt(stack.lastIndex) })
-		Screen.Login -> LoginScreen(onBack = { stack.removeAt(stack.lastIndex) }, onDone = { stack.clear() })
+		is Screen.Viewer -> ViewerScreen(top.urls, top.index, onClose = { pop() })
+		Screen.Login -> LoginScreen(onBack = { pop() }, onDone = { popAll() })
 		null -> Scaffold(
 			// The top inset belongs to each tab's own TopAppBar; the bottom one to the navigation bar.
 			contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -189,14 +197,17 @@ private fun MokonaNav() {
 		) { padding ->
 			Box(Modifier.fillMaxSize().padding(padding)) {
 				val loggedIn = PixivAuth.isLoggedIn
-				when (tab) {
-					Tab.HOME -> if (loggedIn) HomeScreen(onOpen = open, onSearch = { tab = Tab.SEARCH }, vm = homeVm) else LoginNeeded(login)
-					Tab.RANKING -> if (loggedIn) RankingScreen(onOpen = open, onSearch = { tab = Tab.SEARCH }, vm = rankingVm) else LoginNeeded(login)
-					Tab.SEARCH -> if (loggedIn) SearchScreen(onOpen = open, onOpenUser = { openUser(it.id) }, vm = searchVm) else LoginNeeded(login)
-					Tab.BOOKMARKS -> if (loggedIn) BookmarksScreen(onOpen = open, onOpenUser = openUser, onSearch = { tab = Tab.SEARCH }, vm = bookmarksVm) else LoginNeeded(login)
-					Tab.SETTINGS -> SettingsScreen(onLogin = login)
+				// Same idea per tab: flipping between tabs does not reset their scroll either.
+				holder.SaveableStateProvider("tab:$tab") {
+					when (tab) {
+						Tab.HOME -> if (loggedIn) HomeScreen(onOpen = open, onSearch = { tab = Tab.SEARCH }, vm = homeVm) else LoginNeeded(login)
+						Tab.RANKING -> if (loggedIn) RankingScreen(onOpen = open, onSearch = { tab = Tab.SEARCH }, vm = rankingVm) else LoginNeeded(login)
+						Tab.SEARCH -> if (loggedIn) SearchScreen(onOpen = open, onOpenUser = { openUser(it.id) }, vm = searchVm) else LoginNeeded(login)
+						Tab.BOOKMARKS -> if (loggedIn) BookmarksScreen(onOpen = open, onOpenUser = openUser, onSearch = { tab = Tab.SEARCH }, vm = bookmarksVm) else LoginNeeded(login)
+						Tab.SETTINGS -> SettingsScreen(onLogin = login)
+					}
 				}
 			}
 		}
-	}
+	} }
 }
