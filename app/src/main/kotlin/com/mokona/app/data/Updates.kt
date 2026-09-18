@@ -36,9 +36,12 @@ object Updates {
 	) {
 		val version: String get() = tag.removePrefix("v")
 		/** The APK built for this phone's architecture (releases ship one per ABI), or any APK. */
-		val apkUrl: String? get() {
+		val apkUrl: String? get() = apkUrlFor(android.os.Build.SUPPORTED_ABIS?.toList().orEmpty())
+
+		/** `abis` in the phone's order of preference, as `Build.SUPPORTED_ABIS` lists them. */
+		fun apkUrlFor(abis: List<String>): String? {
 			val apks = assets.filter { it.name.endsWith(".apk") }
-			val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull { a -> apks.any { it.name.contains(a) } }
+			val abi = abis.firstOrNull { a -> apks.any { it.name.contains(a) } }
 			return (apks.firstOrNull { abi != null && it.name.contains(abi) } ?: apks.firstOrNull())?.url
 		}
 	}

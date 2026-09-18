@@ -113,28 +113,20 @@ object PageTranslator {
 		return image.toBitmap()
 	}
 
-	private fun count(text: String, pred: (Char) -> Boolean) = text.count(pred)
-	private fun kana(c: Char) = c in '\u3040'..'\u30FF'
-	private fun hangul(c: Char) = c in '\uAC00'..'\uD7AF' || c in '\u1100'..'\u11FF' || c in '\u3130'..'\u318F'
-	private fun han(c: Char) = c in '\u4E00'..'\u9FFF' || c in '\u3400'..'\u4DBF'
-	private fun latin(c: Char) = c in 'a'..'z' || c in 'A'..'Z' || c in '\u00C0'..'\u024F'
-
-	/** Which language the page is in, judged by the script of what the recognisers read. */
+	/** Which language the page is in, judged by the script of what the recognisers read (rules in [PageText]). */
 	private suspend fun detectAndRecognise(bitmap: Bitmap): Pair<Source, List<Pair<Rect, String>>> {
 		val ja = recognise(bitmap, Source.JAPANESE)
-		val text = ja.joinToString("") { it.second }
-		val nKana = count(text, ::kana); val nHan = count(text, ::han); val nLatin = count(text, ::latin); val nHangul = count(text, ::hangul)
-		// Kana settles it: Japanese.
-		if (nKana > 0 && nKana >= nLatin / 4) return Source.JAPANESE to ja
-		// Ideographs and no kana: Chinese, read again with its own recogniser.
-		if (nHan > 0 && nHan >= nLatin) return Source.CHINESE to recognise(bitmap, Source.CHINESE).ifEmpty { ja }
-		// Mostly Latin letters: English, with the Latin recogniser.
-		if (nLatin > 0 && nLatin > nHangul) return Source.ENGLISH to recognise(bitmap, Source.ENGLISH).ifEmpty { ja }
+		when (PageText.guess(ja.joinToString("") { it.second })) {
+			Source.JAPANESE -> return Source.JAPANESE to ja
+			Source.CHINESE -> return Source.CHINESE to recognise(bitmap, Source.CHINESE).ifEmpty { ja }
+			Source.ENGLISH -> return Source.ENGLISH to recognise(bitmap, Source.ENGLISH).ifEmpty { ja }
+			else -> {}
+		}
 		// Little or nothing readable for Japanese: try Korean, then English, else keep what there is.
 		val ko = recognise(bitmap, Source.KOREAN)
-		if (count(ko.joinToString("") { it.second }, ::hangul) > 0) return Source.KOREAN to ko
+		if (ko.any { b -> b.second.any(PageText::hangul) }) return Source.KOREAN to ko
 		val en = recognise(bitmap, Source.ENGLISH)
-		if (count(en.joinToString("") { it.second }, ::latin) > 0) return Source.ENGLISH to en
+		if (en.any { b -> b.second.any(PageText::latin) }) return Source.ENGLISH to en
 		return Source.JAPANESE to ja
 	}
 
@@ -150,13 +142,10 @@ object PageTranslator {
 			val text = recognizer.process(InputImage.fromBitmap(bitmap, 0)).await()
 			val blocks = text.textBlocks.mapNotNull { block ->
 				val box = block.boundingBox ?: return@mapNotNull null
-				// Japanese and Chinese have no spaces between lines of a bubble; Korean does.
-				val joined = block.lines.joinToString(if (source == Source.KOREAN || source == Source.ENGLISH) " " else "") { it.text.trim() }
+				val joined = PageText.joinLines(block.lines.map { it.text }, source)
 				if (joined.isBlank()) null else box to joined
 			}
-			// Reading order: bands from top to bottom; inside a band, right to left for manga, left to right for English.
-			val band = (bitmap.height * 0.08f).coerceAtLeast(1f)
-			blocks.sortedWith(compareBy<Pair<Rect, String>> { (it.first.centerY() / band).toInt() }.thenBy { if (source == Source.ENGLISH) it.first.centerX() else -it.first.centerX() })
+			PageText.readingOrder(blocks, bitmap.height, source, { it.first.centerX() }, { it.first.centerY() })
 		} finally {
 			recognizer.close()
 		}

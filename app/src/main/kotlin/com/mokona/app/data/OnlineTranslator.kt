@@ -36,9 +36,13 @@ object OnlineTranslator {
 		val request = Request.Builder().url(url).header("User-Agent", "Mozilla/5.0 (Linux; Android 14) Mokona").build()
 		PixivApi.client.newCall(request).execute().use { r ->
 			if (!r.isSuccessful) throw IllegalStateException("Google Translate ${r.code}")
-			// [[["hola", "hello", …], ["mundo", "world", …]], null, "en", …]
-			val root = json.parseToJsonElement(r.body.string()).jsonArray
-			root[0].jsonArray.joinToString("") { it.jsonArray[0].jsonPrimitive.content }
+			parse(r.body.string())
 		}
+	}
+
+	/** The endpoint answers `[[["hola", "hello", …], ["mundo", "world", …]], null, "en", …]`: the translation is the first item of every segment, joined. */
+	fun parse(body: String): String {
+		val root = json.parseToJsonElement(body).jsonArray
+		return root[0].jsonArray.joinToString("") { seg -> seg.jsonArray[0].jsonPrimitive.content }
 	}
 }
