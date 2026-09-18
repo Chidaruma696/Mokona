@@ -289,7 +289,7 @@ class SearchViewModel : ViewModel() {
 
 /** Bookmarks tab: public, private, by tag, plus the browsing history. */
 class BookmarksViewModel : ViewModel() {
-	enum class Section { PUBLIC, PRIVATE, HISTORY }
+	enum class Section { PUBLIC, PRIVATE, HISTORY, DOWNLOADS }
 	var section by mutableStateOf(Section.PUBLIC)
 		private set
 	var tag by mutableStateOf<String?>(null)
@@ -304,18 +304,19 @@ class BookmarksViewModel : ViewModel() {
 					Section.PUBLIC -> PixivApi.bookmarks(PixivAuth.userId, Restrict.PUBLIC, tag)
 					Section.PRIVATE -> PixivApi.bookmarks(PixivAuth.userId, Restrict.PRIVATE, tag)
 					Section.HISTORY -> PixivApi.history()
+					Section.DOWNLOADS -> IllustsPage()
 				}
 			}
 		}
 
-	fun select(s: Section) { section = s; tag = null; load(); loadTags() }
+	fun select(s: Section) { section = s; tag = null; if (s != Section.DOWNLOADS) { load(); loadTags() } }
 	fun selectTag(t: String?) { tag = t; load() }
 	fun load(force: Boolean = false) = feed.load(viewModelScope, force)
 	fun loadMore() = feed.loadMore(viewModelScope)
 	fun update(i: Illust) = feeds.values.forEach { it.update(i) }
 
 	fun loadTags() {
-		if (section == Section.HISTORY) { tags = emptyList(); return }
+		if (section == Section.HISTORY || section == Section.DOWNLOADS) { tags = emptyList(); return }
 		val restrict = if (section == Section.PRIVATE) Restrict.PRIVATE else Restrict.PUBLIC
 		viewModelScope.launch { runCatching { PixivApi.bookmarkTags(PixivAuth.userId, restrict) }.onSuccess { tags = it } }
 	}

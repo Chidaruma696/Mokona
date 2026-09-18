@@ -35,6 +35,7 @@ compose-material3 = { module = "androidx.compose.material3:material3" }
 compose-material-icons = { module = "androidx.compose.material:material-icons-core" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+mlkit-text-latin = { module = "com.google.mlkit:text-recognition", version.ref = "mlkitText" }
 mlkit-text-japanese = { module = "com.google.mlkit:text-recognition-japanese", version.ref = "mlkitText" }
 mlkit-text-chinese = { module = "com.google.mlkit:text-recognition-chinese", version.ref = "mlkitText" }
 mlkit-text-korean = { module = "com.google.mlkit:text-recognition-korean", version.ref = "mlkitText" }

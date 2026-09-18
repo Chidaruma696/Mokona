@@ -63,6 +63,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.mokona.app.R
+import com.mokona.app.data.DownloadRepository
+import com.mokona.app.data.DownloadQueue
 import com.mokona.app.data.PageTranslator
 import androidx.compose.runtime.mutableStateMapOf
 import com.mokona.app.data.Illust
@@ -95,6 +97,7 @@ fun DetailScreen(
 	var listDialog by remember { mutableStateOf(false) }
 	val savedText = stringResource(R.string.saved_pages)
 	val savedVideoText = stringResource(R.string.saved_video)
+	val queuedText = stringResource(R.string.queued_offline)
 	val privateText = stringResource(R.string.bookmarked_private)
 
 	if (illust == null) {
@@ -141,6 +144,8 @@ fun DetailScreen(
 						)
 						DropdownMenuItem(text = { Text(stringResource(R.string.open_in_pixiv)) }, onClick = { menu = false; context.openUrl(illust.webUrl) })
 						if (!illust.isAdult && !illust.isManga) DropdownMenuItem(text = { Text(stringResource(R.string.add_to_wallpaper_list)) }, onClick = { menu = false; listDialog = true })
+						if (DownloadRepository.has(illust.id)) DropdownMenuItem(text = { Text(stringResource(R.string.remove_download)) }, onClick = { menu = false; DownloadRepository.remove(illust.id) })
+						else DropdownMenuItem(text = { Text(stringResource(R.string.save_offline)) }, enabled = !illust.isAnimated, onClick = { menu = false; DownloadQueue.enqueue(context, illust); snack = queuedText })
 						DropdownMenuItem(
 							text = { Text(stringResource(R.string.set_wallpaper)) },
 							onClick = {

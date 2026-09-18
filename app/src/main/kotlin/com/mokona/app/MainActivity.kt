@@ -22,6 +22,13 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import com.mokona.app.ui.screens.DownloadBar
+import com.mokona.app.data.TranslationModels
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.Column
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -150,6 +157,12 @@ private fun MokonaNav() {
 
 	BackHandler(enabled = top != null) { pop() }
 	val screenKey = if (top == null) "tabs" else keyOf(stack.lastIndex)
+	// Android 13+: a download wants to show its notification; ask once, when it happens.
+	val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { TranslationModels.wantsPermission = false }
+	LaunchedEffect(TranslationModels.wantsPermission) {
+		if (TranslationModels.wantsPermission && android.os.Build.VERSION.SDK_INT >= 33) askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+	}
+	Box(Modifier.fillMaxSize()) {
 	holder.SaveableStateProvider(screenKey) { when (top) {
 		is Screen.Detail -> DetailScreen(
 			id = top.id,
@@ -178,6 +191,8 @@ private fun MokonaNav() {
 			// The top inset belongs to each tab's own TopAppBar; the bottom one to the navigation bar.
 			contentWindowInsets = WindowInsets(0, 0, 0, 0),
 			bottomBar = {
+				Column {
+				DownloadBar()
 				NavigationBar {
 					Tab.entries.forEach { t ->
 						NavigationBarItem(
@@ -199,6 +214,7 @@ private fun MokonaNav() {
 						)
 					}
 				}
+				}
 			},
 		) { padding ->
 			Box(Modifier.fillMaxSize().padding(padding)) {
@@ -216,4 +232,6 @@ private fun MokonaNav() {
 			}
 		}
 	} }
+	if (top != null) DownloadBar(Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
+	}
 }

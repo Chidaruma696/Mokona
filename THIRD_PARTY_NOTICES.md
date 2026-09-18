@@ -23,8 +23,9 @@ Mokona incorpora o depende del siguiente software de terceros. Cada uno conserva
 
 | Componente | Uso en Mokona | Licencia |
 | --- | --- | --- |
-| [ML Kit Text Recognition v2](https://developers.google.com/ml-kit/vision/text-recognition/v2) (Google) | Lectura del texto de las páginas en japonés, chino y coreano, dentro del teléfono; modelos incluidos en el APK | [Términos de ML Kit](https://developers.google.com/ml-kit/terms) (propietario, gratuito) |
-| [ML Kit Translation](https://developers.google.com/ml-kit/language/translation) (Google) | Traducción de los globos sin conexión; cada modelo de idioma se descarga una vez (~30 MB) | [Términos de ML Kit](https://developers.google.com/ml-kit/terms) (propietario, gratuito) |
+| [ML Kit Text Recognition v2](https://developers.google.com/ml-kit/vision/text-recognition/v2) (Google) | Lectura del texto de las páginas en japonés, chino, coreano e inglés, dentro del teléfono; modelos incluidos en el APK | [Términos de ML Kit](https://developers.google.com/ml-kit/terms) (propietario, gratuito) |
+| [ML Kit Translation](https://developers.google.com/ml-kit/language/translation) (Google) | Traducción de los globos sin conexión (opcional); cada modelo de idioma se descarga una vez (~30 MB) | [Términos de ML Kit](https://developers.google.com/ml-kit/terms) (propietario, gratuito) |
+| [Google Traductor](https://translate.google.com/) (Google) | Traducción en línea por defecto a través de su servicio web público, sin clave. Solo viaja el texto reconocido, nunca la imagen | [Términos de Google](https://policies.google.com/terms) |
 | [kotlinx-coroutines-play-services](https://github.com/Kotlin/kotlinx.coroutines) (JetBrains) | Espera de las tareas de ML Kit desde corrutinas | Apache 2.0 |
 | [WorkManager](https://developer.android.com/jetpack/androidx/releases/work) (Google) | El cambio de fondo de pantalla en segundo plano | Apache 2.0 |
 

@@ -186,4 +186,26 @@
 	<string name="update_check_failed">Could not check: %s</string>
 	<string name="credit_mlkit">ML Kit</string>
 	<string name="credit_mlkit_summary">Google\'s on-device text recognition and translation, used to read manga in your language. Nothing leaves the phone.</string>
+	<string name="lang_english">English</string>
+	<string name="translate_mode">How it translates</string>
+	<string name="translate_online">Online (Google Translate)</string>
+	<string name="translate_offline">Offline (downloaded dictionaries)</string>
+	<string name="translate_mode_summary">Online needs a connection and nothing else. Offline works anywhere once the dictionaries below are on the phone.</string>
+	<string name="dictionaries">Offline dictionaries</string>
+	<string name="dictionaries_summary">Each language is one model of about 30 MB; a translation needs the language it reads and %s. Download them on Wi-Fi and the offline mode works without any connection.</string>
+	<string name="model_on_phone">On the phone</string>
+	<string name="model_not_on_phone">Not downloaded</string>
+	<string name="downloads_channel">Downloads</string>
+	<string name="model_downloading">Downloading the %s dictionary</string>
+	<string name="model_downloading_body">About 30 MB, once. Translation will start when it finishes.</string>
+	<string name="model_ready">%s dictionary ready</string>
+	<string name="model_ready_body">You can now translate without a connection.</string>
+	<string name="downloads">Downloads</string>
+	<string name="save_offline">Save to read offline</string>
+	<string name="remove_download">Remove from downloads</string>
+	<string name="queued_offline">Saving for offline reading; the bar below shows the progress</string>
+	<string name="saving_work">Saving %s</string>
+	<string name="downloads_done">Downloads finished</string>
+	<string name="downloads_empty">Nothing saved yet. Use \"Save to read offline\" in the menu of any work.</string>
+	<string name="downloads_count">%1$d work(s) · %2$d MB on the phone</string>
 </resources>

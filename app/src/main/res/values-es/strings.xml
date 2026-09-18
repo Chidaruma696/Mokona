@@ -185,4 +185,26 @@
 	<string name="update_check_failed">No se pudo comprobar: %s</string>
 	<string name="credit_mlkit">ML Kit</string>
 	<string name="credit_mlkit_summary">Reconocimiento de texto y traducción de Google dentro del teléfono, para leer manga en tu idioma. Nada sale del aparato.</string>
+	<string name="lang_english">English</string>
+	<string name="translate_mode">Cómo traduce</string>
+	<string name="translate_online">En línea (Google Traductor)</string>
+	<string name="translate_offline">Sin conexión (diccionarios descargados)</string>
+	<string name="translate_mode_summary">En línea solo necesita internet, nada más. Sin conexión funciona donde sea una vez que los diccionarios de abajo estén en el teléfono.</string>
+	<string name="dictionaries">Diccionarios sin conexión</string>
+	<string name="dictionaries_summary">Cada idioma es un modelo de unos 30 MB; una traducción necesita el idioma que lee y %s. Descárgalos con wifi y el modo sin conexión funciona sin internet.</string>
+	<string name="model_on_phone">En el teléfono</string>
+	<string name="model_not_on_phone">Sin descargar</string>
+	<string name="downloads_channel">Descargas</string>
+	<string name="model_downloading">Descargando el diccionario de %s</string>
+	<string name="model_downloading_body">Unos 30 MB, una sola vez. La traducción empieza cuando termine.</string>
+	<string name="model_ready">Diccionario de %s listo</string>
+	<string name="model_ready_body">Ya puedes traducir sin conexión.</string>
+	<string name="downloads">Descargas</string>
+	<string name="save_offline">Guardar para leer sin conexión</string>
+	<string name="remove_download">Quitar de descargas</string>
+	<string name="queued_offline">Guardando para leer sin conexión; la barra de abajo muestra el progreso</string>
+	<string name="saving_work">Guardando %s</string>
+	<string name="downloads_done">Descargas terminadas</string>
+	<string name="downloads_empty">Todavía no hay nada guardado. Usa \"Guardar para leer sin conexión\" en el menú de cualquier obra.</string>
+	<string name="downloads_count">%1$d obra(s) · %2$d MB en el teléfono</string>
 </resources>

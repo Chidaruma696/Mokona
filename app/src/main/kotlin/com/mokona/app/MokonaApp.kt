@@ -8,6 +8,7 @@ import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.mokona.app.data.PixivApi
+import com.mokona.app.data.DownloadRepository
 import com.mokona.app.data.PixivAuth
 import com.mokona.app.data.Updates
 import com.mokona.app.data.WallpaperPrefs
@@ -22,6 +23,7 @@ class MokonaApp : Application(), SingletonImageLoader.Factory {
 		AppPrefs.init(this)
 		PixivAuth.init(this)
 		WallpaperPrefs.init(this)
+		DownloadRepository.init(this)
 		Updates.init(this)
 	}
 

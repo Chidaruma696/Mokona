@@ -31,6 +31,8 @@ import com.mokona.app.data.PixivAuth
 import com.mokona.app.ui.AppPrefs
 import com.mokona.app.ui.ThemeMode
 import com.mokona.app.data.PageTranslator
+import com.mokona.app.data.TranslationModels
+import androidx.compose.runtime.LaunchedEffect
 import com.mokona.app.data.Updates
 import com.mokona.app.data.WallpaperPrefs
 import androidx.compose.runtime.rememberCoroutineScope
@@ -119,10 +121,42 @@ fun SettingsScreen(onLogin: () -> Unit, onWallpaperLists: () -> Unit = {}) {
 								FilterChip(selected = AppPrefs.ocrSource == PageTranslator.Source.JAPANESE, onClick = { AppPrefs.updateOcrSource(PageTranslator.Source.JAPANESE) }, label = { Text(stringResource(R.string.lang_japanese)) })
 								FilterChip(selected = AppPrefs.ocrSource == PageTranslator.Source.CHINESE, onClick = { AppPrefs.updateOcrSource(PageTranslator.Source.CHINESE) }, label = { Text(stringResource(R.string.lang_chinese)) })
 								FilterChip(selected = AppPrefs.ocrSource == PageTranslator.Source.KOREAN, onClick = { AppPrefs.updateOcrSource(PageTranslator.Source.KOREAN) }, label = { Text(stringResource(R.string.lang_korean)) })
+								FilterChip(selected = AppPrefs.ocrSource == PageTranslator.Source.ENGLISH, onClick = { AppPrefs.updateOcrSource(PageTranslator.Source.ENGLISH) }, label = { Text(stringResource(R.string.lang_english)) })
 							}
 						}
 					},
 				)
+				ListItem(
+					headlineContent = { Text(stringResource(R.string.translate_mode)) },
+					supportingContent = {
+						Column {
+							Text(stringResource(R.string.translate_mode_summary))
+							Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
+								FilterChip(selected = !AppPrefs.translateOffline, onClick = { AppPrefs.updateTranslateOffline(false) }, label = { Text(stringResource(R.string.translate_online)) })
+								FilterChip(selected = AppPrefs.translateOffline, onClick = { AppPrefs.updateTranslateOffline(true) }, label = { Text(stringResource(R.string.translate_offline)) })
+							}
+						}
+					},
+				)
+				LaunchedEffect(Unit) { TranslationModels.refresh() }
+				ListItem(
+					headlineContent = { Text(stringResource(R.string.dictionaries)) },
+					supportingContent = { Text(stringResource(R.string.dictionaries_summary, TranslationModels.name(PageTranslator.target()))) },
+				)
+				val tags = (PageTranslator.Source.entries.map { it.tag } + PageTranslator.target()).distinct().filter { it != "en" }
+				tags.forEach { tag ->
+					val have = tag in TranslationModels.downloaded
+					val busy = TranslationModels.downloading[tag] == true
+					ListItem(
+						headlineContent = { Text(TranslationModels.name(tag)) },
+						supportingContent = { Text(if (busy) stringResource(R.string.checking) else if (have) stringResource(R.string.model_on_phone) else stringResource(R.string.model_not_on_phone)) },
+						trailingContent = {
+							if (have) TextButton(onClick = { TranslationModels.delete(tag) }) { Text(stringResource(R.string.delete)) }
+							else TextButton(onClick = { TranslationModels.downloadInBackground(tag) }, enabled = !busy) { Text(stringResource(R.string.download)) }
+						},
+					)
+				}
+				TranslationModels.lastError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) }
 			}
 
 			SectionTitle(stringResource(R.string.wallpaper))

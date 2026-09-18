@@ -9,7 +9,6 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
-import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
@@ -18,6 +17,7 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -26,13 +26,14 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 
 /**
- * Manga in your language, without leaving the phone: ML Kit reads the text of a page (Japanese,
- * Chinese or Korean, models bundled in the APK) and translates each speech bubble with an offline
- * model that downloads once (~30 MB per language). Nothing about the page leaves the device.
+ * Manga in your language. ML Kit reads the text of a page on the phone (Japanese, Chinese, Korean
+ * or English; the recognisers travel in the APK). Each bubble is then translated online with
+ * Google Translate, no download needed, or, if the user turned offline mode on and fetched the
+ * dictionaries from Settings, with ML Kit's models without any connection.
  */
 object PageTranslator {
 	enum class Source(val tag: String) {
-		JAPANESE(TranslateLanguage.JAPANESE), CHINESE(TranslateLanguage.CHINESE), KOREAN(TranslateLanguage.KOREAN);
+		JAPANESE(TranslateLanguage.JAPANESE), CHINESE(TranslateLanguage.CHINESE), KOREAN(TranslateLanguage.KOREAN), ENGLISH(TranslateLanguage.ENGLISH);
 	}
 
 	/** One recognised block, in bitmap pixels. */
@@ -57,11 +58,11 @@ object PageTranslator {
 		return TranslateLanguage.fromLanguageTag(tag) ?: TranslateLanguage.ENGLISH
 	}
 
-	fun cached(url: String, source: Source): Result? = cache.get("$source:${target()}:$url")
+	fun cached(url: String, source: Source): Result? = cache.get("$source:${target()}:${AppLanguage.offline}:$url")
 
-	/** Recognises and translates one page; results are cached per page, language and target. */
+	/** Recognises and translates one page; results are cached per page, language, target and mode. */
 	suspend fun translate(context: Context, url: String, source: Source, onStatus: (Status) -> Unit = {}): Result {
-		val key = "$source:${target()}:$url"
+		val key = "$source:${target()}:${AppLanguage.offline}:$url"
 		cache.get(key)?.let { return it }
 		return lock.withLock {
 			cache.get(key)?.let { return@withLock it }
@@ -71,11 +72,20 @@ object PageTranslator {
 			val blocks = recognise(bitmap, source)
 			val result = if (blocks.isEmpty()) {
 				Result(bitmap.width, bitmap.height, emptyList())
+			} else if (source.tag == target()) {
+				// Reading English on an English app: nothing to translate; the boxes still help.
+				Result(bitmap.width, bitmap.height, blocks.map { (box, text) -> Bubble(box, text, text) })
+			} else if (!AppLanguage.offline) {
+				onStatus(Status.Translating)
+				val translated = OnlineTranslator.translate(blocks.map { it.second }, source.tag, target())
+				Result(bitmap.width, bitmap.height, blocks.mapIndexed { i, (box, text) -> Bubble(box, text, translated[i]) })
 			} else {
+				if (!TranslationModels.ready(source)) {
+					onStatus(Status.DownloadingModel)
+					TranslationModels.download(source)
+				}
 				val translator = Translation.getClient(TranslatorOptions.Builder().setSourceLanguage(source.tag).setTargetLanguage(target()).build())
 				try {
-					onStatus(Status.DownloadingModel)
-					translator.downloadModelIfNeeded(DownloadConditions.Builder().build()).await()
 					onStatus(Status.Translating)
 					val bubbles = blocks.map { (box, text) -> Bubble(box, text, translator.translate(text).await()) }
 					Result(bitmap.width, bitmap.height, bubbles)
@@ -101,6 +111,7 @@ object PageTranslator {
 			Source.JAPANESE -> JapaneseTextRecognizerOptions.Builder().build()
 			Source.CHINESE -> ChineseTextRecognizerOptions.Builder().build()
 			Source.KOREAN -> KoreanTextRecognizerOptions.Builder().build()
+			Source.ENGLISH -> TextRecognizerOptions.DEFAULT_OPTIONS
 		}
 		val recognizer = TextRecognition.getClient(options)
 		try {
@@ -108,7 +119,7 @@ object PageTranslator {
 			text.textBlocks.mapNotNull { block ->
 				val box = block.boundingBox ?: return@mapNotNull null
 				// Japanese and Chinese have no spaces between lines of a bubble; Korean does.
-				val joined = block.lines.joinToString(if (source == Source.KOREAN) " " else "") { it.text.trim() }
+				val joined = block.lines.joinToString(if (source == Source.KOREAN || source == Source.ENGLISH) " " else "") { it.text.trim() }
 				if (joined.isBlank()) null else box to joined
 			}
 		} finally {
@@ -120,4 +131,6 @@ object PageTranslator {
 /** Mirror of the app language for code outside Compose. Kept in sync by AppPrefs. */
 object AppLanguage {
 	@Volatile var current: String = "en"
+	/** Translate with the downloaded dictionaries instead of Google Translate online. */
+	@Volatile var offline: Boolean = false
 }

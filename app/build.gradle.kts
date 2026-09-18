@@ -109,6 +109,7 @@ dependencies {
 	implementation(libs.coil.network)
 
 	// Manga in your language: on-device OCR for Japanese, Chinese and Korean, and offline translation models.
+	implementation(libs.mlkit.text.latin)
 	implementation(libs.mlkit.text.japanese)
 	implementation(libs.mlkit.text.chinese)
 	implementation(libs.mlkit.text.korean)

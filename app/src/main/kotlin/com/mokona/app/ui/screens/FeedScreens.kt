@@ -53,6 +53,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mokona.app.R
+import com.mokona.app.data.DownloadRepository
+import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import com.mokona.app.data.Illust
 import com.mokona.app.data.PixivAuth
 import com.mokona.app.data.PixivUser
@@ -371,6 +375,11 @@ fun BookmarksScreen(onOpen: (Illust) -> Unit, onOpenUser: (Long) -> Unit, onSear
 			FilterChip(selected = vm.section == BookmarksViewModel.Section.PUBLIC, onClick = { vm.select(BookmarksViewModel.Section.PUBLIC) }, label = { Text(stringResource(R.string.bookmarks_public)) })
 			FilterChip(selected = vm.section == BookmarksViewModel.Section.PRIVATE, onClick = { vm.select(BookmarksViewModel.Section.PRIVATE) }, label = { Text(stringResource(R.string.bookmarks_private)) })
 			FilterChip(selected = vm.section == BookmarksViewModel.Section.HISTORY, onClick = { vm.select(BookmarksViewModel.Section.HISTORY) }, label = { Text(stringResource(R.string.history)) })
+			FilterChip(selected = vm.section == BookmarksViewModel.Section.DOWNLOADS, onClick = { vm.select(BookmarksViewModel.Section.DOWNLOADS) }, label = { Text(stringResource(R.string.downloads)) })
+		}
+		if (vm.section == BookmarksViewModel.Section.DOWNLOADS) {
+			DownloadsGrid(onOpen)
+			return@Column
 		}
 		if (vm.tags.isNotEmpty()) {
 			LazyRow(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -395,5 +404,28 @@ fun LoginNeeded(onLogin: () -> Unit) {
 				Button(onClick = onLogin) { Text(stringResource(R.string.login)) }
 			}
 		}
+	}
+}
+
+/** Works saved for reading offline: the same grid, fed from the phone. */
+@Composable
+fun DownloadsGrid(onOpen: (Illust) -> Unit) {
+	val works = DownloadRepository.works
+	if (works.isEmpty()) {
+		Text(stringResource(R.string.downloads_empty), Modifier.fillMaxWidth().padding(32.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+		return
+	}
+	Text(
+		stringResource(R.string.downloads_count, works.size, DownloadRepository.sizeBytes() / 1_048_576),
+		Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+	)
+	LazyVerticalStaggeredGrid(
+		columns = StaggeredGridCells.Fixed(AppPrefs.gridColumns),
+		contentPadding = PaddingValues(8.dp),
+		horizontalArrangement = Arrangement.spacedBy(8.dp),
+		verticalItemSpacing = 8.dp,
+		modifier = Modifier.fillMaxSize(),
+	) {
+		items(works, key = { it.illust.id }) { w -> IllustCard(w.offline(), onClick = { onOpen(w.offline()) }) }
 	}
 }

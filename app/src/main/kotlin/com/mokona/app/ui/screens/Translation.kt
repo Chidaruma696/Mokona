@@ -92,6 +92,7 @@ fun TranslationBar(source: PageTranslator.Source, onSource: (PageTranslator.Sour
 						PageTranslator.Source.JAPANESE -> stringResource(R.string.lang_japanese)
 						PageTranslator.Source.CHINESE -> stringResource(R.string.lang_chinese)
 						PageTranslator.Source.KOREAN -> stringResource(R.string.lang_korean)
+						PageTranslator.Source.ENGLISH -> stringResource(R.string.lang_english)
 					},
 				)
 			})

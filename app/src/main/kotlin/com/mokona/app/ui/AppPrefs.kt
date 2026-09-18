@@ -44,6 +44,9 @@ object AppPrefs {
 	/** Script the manga translator reads by default. */
 	var ocrSource by mutableStateOf(PageTranslator.Source.JAPANESE)
 		private set
+	/** Translate with the offline dictionaries (downloaded in Settings) instead of online. Off by default. */
+	var translateOffline by mutableStateOf(false)
+		private set
 
 	fun init(context: Context) {
 		val p = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -57,13 +60,16 @@ object AppPrefs {
 		kaoBannerVisible = p.getBoolean("kao_banner", true)
 		readerHorizontal = p.getBoolean("reader_horizontal", false)
 		ocrSource = runCatching { PageTranslator.Source.valueOf(p.getString("ocr_source", "JAPANESE")!!) }.getOrDefault(PageTranslator.Source.JAPANESE)
+		translateOffline = p.getBoolean("translate_offline", false)
 		AppLanguage.current = language
+		AppLanguage.offline = translateOffline
 	}
 
 	private fun prefs() = MokonaApp.appContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
 	fun updateLanguage(value: String) { language = value; AppLanguage.current = value; prefs().edit { putString("language", value) }; applyLanguage() }
 	fun updateOcrSource(value: PageTranslator.Source) { ocrSource = value; prefs().edit { putString("ocr_source", value.name) } }
+	fun updateTranslateOffline(value: Boolean) { translateOffline = value; AppLanguage.offline = value; prefs().edit { putBoolean("translate_offline", value) } }
 
 	/** Makes the app speak the chosen language; recreates the activity when it changes. */
 	fun applyLanguage() {
