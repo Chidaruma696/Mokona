@@ -37,6 +37,17 @@ android {
 		}
 	}
 
+	// The OCR models for Japanese, Chinese and Korean are native libraries, ~25 MB per ABI: one APK
+	// per architecture keeps the download at a third of a universal one. Phones are arm; x86 is emulators.
+	splits {
+		abi {
+			isEnable = true
+			reset()
+			include("arm64-v8a", "armeabi-v7a")
+			isUniversalApk = false
+		}
+	}
+
 	buildTypes {
 		debug {
 			applicationIdSuffix = ".debug"
@@ -96,4 +107,13 @@ dependencies {
 
 	implementation(libs.coil.compose)
 	implementation(libs.coil.network)
+
+	// Manga in your language: on-device OCR for Japanese, Chinese and Korean, and offline translation models.
+	implementation(libs.mlkit.text.japanese)
+	implementation(libs.mlkit.text.chinese)
+	implementation(libs.mlkit.text.korean)
+	implementation(libs.mlkit.translate)
+	implementation(libs.coroutines.play.services)
+	// Wallpaper rotation in the background.
+	implementation(libs.androidx.work)
 }

@@ -51,7 +51,8 @@ Mokona is an Android app to see Pixiv the way it should look. The official app c
 | Home with your account's recommendations and new works from who you follow | Daily, weekly, monthly rankings, by audience, originals and rookies, for any date | Material You: the palette comes from your wallpaper (Android 12+) |
 | Staggered grid with every work's real proportion, 1 to 4 columns; pull down to refresh | Work search in two sections, **Newest** and **Popular**, with autocomplete, sort, match and date filters; tags show in your language with the original Japanese name underneath, and searching in English or Spanish finds the Japanese tag; or artist search | Light, dark or system theme, plus **AMOLED black** for OLED screens |
 | Detail with every page, full-screen viewer with zoom, animated ugoira that **downloads as an MP4 video**, translated tags, related works, comments, original download, share and set as wallpaper | Every artist's profile with a follow button, their works, manga, bookmarks and who they follow | R-18 content **off by default**, switchable in Settings › Content |
-| **Comic reader** for multi-page works: vertical strip or page by page right to left, with zoom; recommended manga on Home, manga rankings and series with every chapter |
+| **Comic reader** for multi-page works: vertical strip or page by page right to left, with zoom; recommended manga on Home, manga rankings and series with every chapter | **Manga in your language**: the 訳 button in the reader and the viewer reads the page on the phone (Japanese, Chinese or Korean) and translates each bubble into the app's language, original one tap away; nothing leaves the device | **Wallpaper that changes by itself**: every half hour, every few hours or once a day, with random works, the artists you follow, your bookmarks or lists you build from any work's menu; home, lock screen or both, Wi-Fi only if you want |
+| | | **New version notice**: once a day it looks at GitHub releases and tells you on Home and in Settings, with a direct APK download |
 | Bookmarks tab: public, private, filtered by tag, plus your browsing history | Public bookmark with a tap, private with a long press, synced with your account | English or Spanish: asked on first start (English if skipped), changeable in Settings; pixiv.net links open in Mokona |
 
 <br/>
@@ -87,7 +88,7 @@ cd Mokona
 ./gradlew :app:assembleDebug
 ```
 
-For the signed build, create `local.properties` with `keystore.file`, `keystore.password`, `keystore.alias` and `keystore.keyPassword`, then run `./gradlew :app:assembleRelease`.
+For the signed build, create `local.properties` with `keystore.file`, `keystore.password`, `keystore.alias` and `keystore.keyPassword`, then run `./gradlew :app:assembleRelease`. It produces two APKs, one per architecture (`arm64-v8a`, which is nearly every current phone, and `armeabi-v7a`): the text recognition models for Japanese, Chinese and Korean are native libraries, about 25 MB per architecture. The new version notice picks only the APK that matches the phone.
 
 <br/>
 
@@ -107,6 +108,7 @@ Mokona is released under the [Apache 2.0 license](LICENSE). Third-party librarie
 
 - **Pixiv** and its services belong to pixiv Inc. Mokona is an independent viewer with no affiliation or endorsement. Every work belongs to its artist.
 - The documentation of Pixiv's app API comes from [pixivpy](https://github.com/upbit/pixivpy).
+- Manga text recognition and translation run on the phone with Google's [ML Kit](https://developers.google.com/ml-kit); language models download once and no page is ever sent to a server.
 - **Mokona** is a character by **CLAMP** (*Magic Knight Rayearth*, *xxxHolic*, *Tsubasa*). The name is a homage; there is no affiliation with CLAMP or its publishers.
 
 <br/>

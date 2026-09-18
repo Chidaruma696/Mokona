@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -29,11 +30,17 @@ import com.mokona.app.R
 import com.mokona.app.data.PixivAuth
 import com.mokona.app.ui.AppPrefs
 import com.mokona.app.ui.ThemeMode
+import com.mokona.app.data.PageTranslator
+import com.mokona.app.data.Updates
+import com.mokona.app.data.WallpaperPrefs
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onLogin: () -> Unit) {
+fun SettingsScreen(onLogin: () -> Unit, onWallpaperLists: () -> Unit = {}) {
 	val context = LocalContext.current
+	val scope = rememberCoroutineScope()
 	Column(Modifier.fillMaxSize()) {
 		TopAppBar(title = { Text(stringResource(R.string.settings)) })
 		Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -101,7 +108,49 @@ fun SettingsScreen(onLogin: () -> Unit) {
 				)
 			}
 
+			SectionTitle(stringResource(R.string.reader_section))
+			Card(Modifier.padding(horizontal = 12.dp)) {
+				ListItem(
+					headlineContent = { Text(stringResource(R.string.ocr_source)) },
+					supportingContent = {
+						Column {
+							Text(stringResource(R.string.ocr_source_summary))
+							Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
+								FilterChip(selected = AppPrefs.ocrSource == PageTranslator.Source.JAPANESE, onClick = { AppPrefs.updateOcrSource(PageTranslator.Source.JAPANESE) }, label = { Text(stringResource(R.string.lang_japanese)) })
+								FilterChip(selected = AppPrefs.ocrSource == PageTranslator.Source.CHINESE, onClick = { AppPrefs.updateOcrSource(PageTranslator.Source.CHINESE) }, label = { Text(stringResource(R.string.lang_chinese)) })
+								FilterChip(selected = AppPrefs.ocrSource == PageTranslator.Source.KOREAN, onClick = { AppPrefs.updateOcrSource(PageTranslator.Source.KOREAN) }, label = { Text(stringResource(R.string.lang_korean)) })
+							}
+						}
+					},
+				)
+			}
+
+			SectionTitle(stringResource(R.string.wallpaper))
+			WallpaperSection(onWallpaperLists)
+
 			SectionTitle(stringResource(R.string.about))
+			Card(Modifier.padding(horizontal = 12.dp)) {
+				val update = Updates.available
+				ListItem(
+					headlineContent = { Text(stringResource(R.string.check_updates)) },
+					supportingContent = {
+						Text(
+							when {
+								Updates.checking -> stringResource(R.string.checking)
+								update != null -> stringResource(R.string.update_available, update.version)
+								Updates.lastResult == "" -> stringResource(R.string.up_to_date)
+								Updates.lastResult != null && Updates.isNewer(Updates.lastResult!!, BuildConfig.VERSION_NAME) -> stringResource(R.string.update_available, Updates.lastResult!!)
+								Updates.lastResult != null -> stringResource(R.string.update_check_failed, Updates.lastResult!!)
+								else -> stringResource(R.string.check_updates_summary)
+							},
+						)
+					},
+					trailingContent = {
+						if (update != null) Button(onClick = { context.openUrl(update.apkUrl ?: update.pageUrl) }) { Text(stringResource(R.string.update_download)) }
+						else TextButton(onClick = { scope.launch { Updates.check(force = true) } }, enabled = !Updates.checking) { Text(stringResource(R.string.search)) }
+					},
+				)
+			}
 			AboutSection()
 			Text(
 				"Mokona ${BuildConfig.VERSION_NAME}",
@@ -120,4 +169,79 @@ fun SectionTitle(text: String) {
 		text, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary,
 		modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 2.dp),
 	)
+}
+
+/** Settings › Wallpaper: the switch, the source, how often, where, and the last result. */
+@Composable
+private fun WallpaperSection(onWallpaperLists: () -> Unit) {
+	val context = LocalContext.current
+	Card(Modifier.padding(horizontal = 12.dp)) {
+		ListItem(
+			headlineContent = { Text(stringResource(R.string.wallpaper_enabled)) },
+			supportingContent = { Text(stringResource(R.string.wallpaper_enabled_summary)) },
+			trailingContent = { Switch(checked = WallpaperPrefs.enabled, onCheckedChange = { WallpaperPrefs.updateEnabled(context, it) }) },
+		)
+		ListItem(
+			headlineContent = { Text(stringResource(R.string.wallpaper_source)) },
+			supportingContent = {
+				Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 6.dp)) {
+					Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+						FilterChip(selected = WallpaperPrefs.source == WallpaperPrefs.Source.RECOMMENDED, onClick = { WallpaperPrefs.updateSource(WallpaperPrefs.Source.RECOMMENDED) }, label = { Text(stringResource(R.string.source_recommended)) })
+						FilterChip(selected = WallpaperPrefs.source == WallpaperPrefs.Source.FOLLOWING, onClick = { WallpaperPrefs.updateSource(WallpaperPrefs.Source.FOLLOWING) }, label = { Text(stringResource(R.string.source_following)) })
+					}
+					Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+						FilterChip(selected = WallpaperPrefs.source == WallpaperPrefs.Source.BOOKMARKS, onClick = { WallpaperPrefs.updateSource(WallpaperPrefs.Source.BOOKMARKS) }, label = { Text(stringResource(R.string.source_bookmarks)) })
+						FilterChip(selected = WallpaperPrefs.source == WallpaperPrefs.Source.LIST, onClick = { WallpaperPrefs.updateSource(WallpaperPrefs.Source.LIST) }, label = { Text(stringResource(R.string.source_list)) })
+					}
+					if (WallpaperPrefs.source == WallpaperPrefs.Source.LIST) {
+						Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+							WallpaperPrefs.lists.forEach { l ->
+								FilterChip(selected = WallpaperPrefs.listId == l.id, onClick = { WallpaperPrefs.updateListId(l.id) }, label = { Text("${l.name} · ${l.items.size}") })
+							}
+						}
+					}
+				}
+			},
+		)
+		ListItem(
+			headlineContent = { Text(stringResource(R.string.wallpaper_lists)) },
+			supportingContent = { Text(stringResource(R.string.wallpaper_lists_summary, WallpaperPrefs.lists.size)) },
+			trailingContent = { TextButton(onClick = onWallpaperLists) { Text("→") } },
+		)
+		ListItem(
+			headlineContent = { Text(stringResource(R.string.wallpaper_interval)) },
+			supportingContent = {
+				Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp).horizontalScroll(rememberScrollState())) {
+					WallpaperPrefs.intervals.forEach { m ->
+						val label = when { m < 60 -> stringResource(R.string.every_minutes, m); m < 1440 -> stringResource(R.string.every_hours, m / 60); else -> stringResource(R.string.every_day) }
+						FilterChip(selected = WallpaperPrefs.intervalMinutes == m, onClick = { WallpaperPrefs.updateInterval(context, m) }, label = { Text(label) })
+					}
+				}
+			},
+		)
+		ListItem(
+			headlineContent = { Text(stringResource(R.string.wallpaper_target)) },
+			supportingContent = {
+				Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
+					FilterChip(selected = WallpaperPrefs.target == WallpaperPrefs.Target.HOME, onClick = { WallpaperPrefs.updateTarget(WallpaperPrefs.Target.HOME) }, label = { Text(stringResource(R.string.target_home)) })
+					FilterChip(selected = WallpaperPrefs.target == WallpaperPrefs.Target.LOCK, onClick = { WallpaperPrefs.updateTarget(WallpaperPrefs.Target.LOCK) }, label = { Text(stringResource(R.string.target_lock)) })
+					FilterChip(selected = WallpaperPrefs.target == WallpaperPrefs.Target.BOTH, onClick = { WallpaperPrefs.updateTarget(WallpaperPrefs.Target.BOTH) }, label = { Text(stringResource(R.string.target_both)) })
+				}
+			},
+		)
+		ListItem(
+			headlineContent = { Text(stringResource(R.string.wifi_only)) },
+			trailingContent = { Switch(checked = WallpaperPrefs.wifiOnly, onCheckedChange = { WallpaperPrefs.updateWifiOnly(context, it) }) },
+		)
+		ListItem(
+			headlineContent = { Text(stringResource(R.string.change_now)) },
+			supportingContent = {
+				val err = WallpaperPrefs.lastError
+				val last = WallpaperPrefs.lastTitle
+				if (err != null) Text(stringResource(R.string.wallpaper_error, err), color = MaterialTheme.colorScheme.error)
+				else if (last != null) Text(stringResource(R.string.wallpaper_last, last))
+			},
+			trailingContent = { Button(onClick = { WallpaperPrefs.changeNow(context) }, enabled = PixivAuth.isLoggedIn) { Text(stringResource(R.string.change_now)) } },
+		)
+	}
 }

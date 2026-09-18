@@ -30,41 +30,63 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.ui.platform.LocalContext
 import com.mokona.app.R
+import com.mokona.app.data.PageTranslator
+import com.mokona.app.ui.AppPrefs
 
 /** Full-screen pages on black: swipe between pages, pinch to zoom, double tap to toggle 2.5x. */
 @Composable
 fun ViewerScreen(urls: List<String>, startIndex: Int, onClose: () -> Unit) {
 	val pager = rememberPagerState(initialPage = startIndex.coerceIn(0, (urls.size - 1).coerceAtLeast(0))) { urls.size }
+	val context = LocalContext.current
+	var translating by remember { mutableStateOf(false) }
+	var source by remember { mutableStateOf(AppPrefs.ocrSource) }
+	var status by remember { mutableStateOf<PageTranslator.Status>(PageTranslator.Status.Idle) }
+	val translations = remember { mutableStateMapOf<String, PageTranslator.Result>() }
+	LaunchedEffect(translating, pager.currentPage, source) {
+		if (!translating) return@LaunchedEffect
+		val url = urls.getOrNull(pager.currentPage) ?: return@LaunchedEffect
+		if (translations.containsKey("$source:$url")) return@LaunchedEffect
+		runCatching { translations["$source:$url"] = PageTranslator.translate(context, url, source) { status = it } }
+			.onFailure { status = PageTranslator.Status.Failed(it.message ?: it.javaClass.simpleName) }
+	}
 	Box(Modifier.fillMaxSize().background(Color.Black)) {
 		HorizontalPager(state = pager, modifier = Modifier.fillMaxSize(), key = { urls[it] }) { page ->
-			ZoomableImage(urls[page])
+			ZoomableImage(urls[page], if (translating) translations["$source:${urls[page]}"] else null)
 		}
 		Box(Modifier.safeDrawingPadding().fillMaxSize()) {
 			IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopStart).padding(4.dp)) {
 				Icon(Icons.Default.Close, contentDescription = stringResource(R.string.back), tint = Color.White)
 			}
-			if (urls.size > 1) {
-				Text("${pager.currentPage + 1}/${urls.size}", color = Color.White, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp))
+			Row(Modifier.align(Alignment.TopEnd).padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
+				if (urls.size > 1) Text("${pager.currentPage + 1}/${urls.size}", color = Color.White, modifier = Modifier.padding(end = 8.dp))
+				IconButton(onClick = { translating = !translating; if (!translating) status = PageTranslator.Status.Idle }) {
+					Text("訳", color = if (translating) Color(0xFFFFD54F) else Color.White, style = MaterialTheme.typography.titleMedium)
+				}
+			}
+			if (translating) {
+				TranslationBar(source, onSource = { source = it; AppPrefs.updateOcrSource(it) }, status = status, modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 12.dp))
 			}
 		}
 	}
 }
 
 @Composable
-private fun ZoomableImage(url: String) {
+private fun ZoomableImage(url: String, translation: PageTranslator.Result? = null) {
 	var scale by remember { mutableFloatStateOf(1f) }
 	var offset by remember { mutableStateOf(Offset.Zero) }
 	val state = rememberTransformableState { zoom, pan, _ ->
 		scale = (scale * zoom).coerceIn(1f, 6f)
 		offset = if (scale > 1f) offset + pan else Offset.Zero
 	}
-	AsyncImage(
-		model = url,
-		contentDescription = null,
-		contentScale = ContentScale.Fit,
-		modifier = Modifier
+	TranslatablePage(
+		url, translation, ContentScale.Fit,
+		Modifier
 			.fillMaxSize()
 			.pointerInput(Unit) {
 				detectTapGestures(onDoubleTap = {

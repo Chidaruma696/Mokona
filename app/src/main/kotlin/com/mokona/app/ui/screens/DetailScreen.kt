@@ -90,6 +90,7 @@ fun DetailScreen(
 	val context = LocalContext.current
 	var snack by remember { mutableStateOf<String?>(null) }
 	var menu by remember { mutableStateOf(false) }
+	var listDialog by remember { mutableStateOf(false) }
 	val savedText = stringResource(R.string.saved_pages)
 	val savedVideoText = stringResource(R.string.saved_video)
 	val privateText = stringResource(R.string.bookmarked_private)
@@ -101,6 +102,7 @@ fun DetailScreen(
 		return
 	}
 
+	if (listDialog) AddToWallpaperListDialog(illust, onDismiss = { listDialog = false }, onResult = { snack = it })
 	Column(Modifier.fillMaxSize()) {
 		TopAppBar(
 			title = { Text(illust.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -136,6 +138,7 @@ fun DetailScreen(
 							onClick = { menu = false; vm.downloadVideo { snack = savedVideoText } },
 						)
 						DropdownMenuItem(text = { Text(stringResource(R.string.open_in_pixiv)) }, onClick = { menu = false; context.openUrl(illust.webUrl) })
+						if (!illust.isAdult && !illust.isManga) DropdownMenuItem(text = { Text(stringResource(R.string.add_to_wallpaper_list)) }, onClick = { menu = false; listDialog = true })
 						DropdownMenuItem(
 							text = { Text(stringResource(R.string.set_wallpaper)) },
 							onClick = {

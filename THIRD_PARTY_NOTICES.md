@@ -19,6 +19,15 @@ Mokona incorpora o depende del siguiente software de terceros. Cada uno conserva
 | [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization) (JetBrains) | Lectura del JSON de la API | Apache 2.0 |
 | [kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) (JetBrains) | Concurrencia | Apache 2.0 |
 
+## Manga en tu idioma y fondo de pantalla
+
+| Componente | Uso en Mokona | Licencia |
+| --- | --- | --- |
+| [ML Kit Text Recognition v2](https://developers.google.com/ml-kit/vision/text-recognition/v2) (Google) | Lectura del texto de las páginas en japonés, chino y coreano, dentro del teléfono; modelos incluidos en el APK | [Términos de ML Kit](https://developers.google.com/ml-kit/terms) (propietario, gratuito) |
+| [ML Kit Translation](https://developers.google.com/ml-kit/language/translation) (Google) | Traducción de los globos sin conexión; cada modelo de idioma se descarga una vez (~30 MB) | [Términos de ML Kit](https://developers.google.com/ml-kit/terms) (propietario, gratuito) |
+| [kotlinx-coroutines-play-services](https://github.com/Kotlin/kotlinx.coroutines) (JetBrains) | Espera de las tareas de ML Kit desde corrutinas | Apache 2.0 |
+| [WorkManager](https://developer.android.com/jetpack/androidx/releases/work) (Google) | El cambio de fondo de pantalla en segundo plano | Apache 2.0 |
+
 ## Pixiv
 
 | Componente | Uso en Mokona | Licencia |

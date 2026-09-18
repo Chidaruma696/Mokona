@@ -62,6 +62,7 @@ import com.mokona.app.data.SearchSort
 import com.mokona.app.data.SearchTarget
 import com.mokona.app.data.Tag
 import com.mokona.app.ui.AppPrefs
+import com.mokona.app.data.Updates
 import com.mokona.app.ui.BookmarksViewModel
 import com.mokona.app.ui.HomeViewModel
 import com.mokona.app.ui.RankingViewModel
@@ -90,7 +91,12 @@ fun HomeScreen(onOpen: (Illust) -> Unit, onSearch: () -> Unit, vm: HomeViewModel
 			onOpen = onOpen,
 			onLoadMore = { vm.loadMore() },
 			onRetry = { vm.load(force = true) },
-			header = if (AppPrefs.kaoBannerVisible && vm.section == HomeViewModel.Section.RECOMMENDED) ({ KeepAndroidOpenBanner(Modifier.padding(bottom = 4.dp)) }) else null,
+			header = if ((AppPrefs.kaoBannerVisible || Updates.available != null) && vm.section == HomeViewModel.Section.RECOMMENDED) ({
+				Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 4.dp)) {
+					UpdateBanner()
+					if (AppPrefs.kaoBannerVisible) KeepAndroidOpenBanner()
+				}
+			}) else null,
 		)
 	}
 }

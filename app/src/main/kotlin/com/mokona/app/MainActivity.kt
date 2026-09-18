@@ -35,6 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mokona.app.data.Illust
 import com.mokona.app.data.PixivAuth
+import com.mokona.app.data.Updates
 import com.mokona.app.ui.AppPrefs
 import com.mokona.app.ui.BookmarksViewModel
 import com.mokona.app.ui.HomeViewModel
@@ -56,6 +57,7 @@ import com.mokona.app.ui.screens.SeriesScreen
 import com.mokona.app.ui.screens.SearchScreen
 import com.mokona.app.ui.screens.SettingsScreen
 import com.mokona.app.ui.screens.ViewerScreen
+import com.mokona.app.ui.screens.WallpaperListsScreen
 
 private enum class Tab(val labelRes: Int) {
 	HOME(R.string.home), RANKING(R.string.ranking), SEARCH(R.string.search), BOOKMARKS(R.string.bookmarks), SETTINGS(R.string.settings);
@@ -69,6 +71,7 @@ private sealed interface Screen {
 	data class Reader(val illust: Illust) : Screen
 	data class Series(val seriesId: Long) : Screen
 	data object Login : Screen
+	data object WallpaperLists : Screen
 }
 
 class MainActivity : AppCompatActivity() {
@@ -134,6 +137,8 @@ private fun MokonaNav() {
 		homeVm.update(i); rankingVm.update(i); searchVm.update(i); bookmarksVm.update(i); bookmarksVm.invalidate()
 	}
 
+	// Once a day: is there a newer release on GitHub?
+	LaunchedEffect(Unit) { Updates.check() }
 	// A code arriving while the login screen is not open (the browser brought us back) opens it.
 	val pendingCode = LoginBridge.pendingCode
 	LaunchedEffect(pendingCode) { if (pendingCode != null) login() }
@@ -168,6 +173,7 @@ private fun MokonaNav() {
 		)
 		is Screen.Viewer -> ViewerScreen(top.urls, top.index, onClose = { pop() })
 		Screen.Login -> LoginScreen(onBack = { pop() }, onDone = { popAll() })
+		Screen.WallpaperLists -> WallpaperListsScreen(onBack = { pop() })
 		null -> Scaffold(
 			// The top inset belongs to each tab's own TopAppBar; the bottom one to the navigation bar.
 			contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -204,7 +210,7 @@ private fun MokonaNav() {
 						Tab.RANKING -> if (loggedIn) RankingScreen(onOpen = open, onSearch = { tab = Tab.SEARCH }, vm = rankingVm) else LoginNeeded(login)
 						Tab.SEARCH -> if (loggedIn) SearchScreen(onOpen = open, onOpenUser = { openUser(it.id) }, vm = searchVm) else LoginNeeded(login)
 						Tab.BOOKMARKS -> if (loggedIn) BookmarksScreen(onOpen = open, onOpenUser = openUser, onSearch = { tab = Tab.SEARCH }, vm = bookmarksVm) else LoginNeeded(login)
-						Tab.SETTINGS -> SettingsScreen(onLogin = login)
+						Tab.SETTINGS -> SettingsScreen(onLogin = login, onWallpaperLists = { stack.add(Screen.WallpaperLists) })
 					}
 				}
 			}

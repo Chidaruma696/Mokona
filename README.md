@@ -51,7 +51,8 @@ Mokona es una app Android para ver Pixiv como debería verse. La app oficial rec
 | Inicio con las recomendaciones de tu cuenta y las obras nuevas de quien sigues | Ranking diario, semanal, mensual, por público, originales y novatos, de cualquier fecha | Material You: la paleta sale de tu fondo de pantalla (Android 12+) |
 | Cuadrícula escalonada con la proporción real de cada obra, de 1 a 4 columnas; deslizar hacia abajo para actualizar | Búsqueda de obras en dos secciones, **Recientes** y **Populares**, con autocompletado, orden, coincidencia y fecha; las etiquetas se ven en tu idioma con el nombre original japonés debajo, y buscar en inglés o español encuentra la etiqueta japonesa; o búsqueda de artistas | Modo claro, oscuro o del sistema, y **negro AMOLED** para pantallas OLED |
 | Detalle con todas las páginas, visor a pantalla completa con zoom, ugoira animado y **descargable como vídeo MP4**, etiquetas traducidas, obras relacionadas, comentarios, descarga del original, compartir y fondo de pantalla | Perfil de cada artista con botón de seguir, sus obras, manga, marcadores y a quién sigue | Contenido R-18 **desactivado por defecto**, activable en Ajustes › Contenido |
-| **Lector de cómics** para las obras de varias páginas: tira vertical o página a página de derecha a izquierda, con zoom; manga recomendado en Inicio, ranking de manga y series con todos sus capítulos |
+| **Lector de cómics** para las obras de varias páginas: tira vertical o página a página de derecha a izquierda, con zoom; manga recomendado en Inicio, ranking de manga y series con todos sus capítulos | **Manga en tu idioma**: el botón 訳 del lector y del visor lee la página en el teléfono (japonés, chino o coreano) y traduce cada globo al idioma de la app, con el original a un toque; nada sale del aparato | **Fondo de pantalla que cambia solo**: cada media hora, cada tantas horas o una vez al día, con obras aleatorias, de los artistas que sigues, de tus marcadores o de listas que armas desde el menú de cualquier obra; en Inicio, en la pantalla de bloqueo o en ambos, solo con wifi si quieres |
+| | | **Aviso de versiones nuevas**: una vez al día mira las releases de GitHub y avisa en Inicio y en Ajustes, con descarga directa del APK |
 | Pestaña de marcadores: públicos, privados, filtrados por etiqueta, e historial de lo que has visto | Marcador público con un toque y privado con pulsación larga, sincronizados con tu cuenta | Idioma inglés o español: se pregunta al primer arranque (inglés si se salta) y se cambia en Ajustes; los enlaces de pixiv.net se abren con Mokona |
 
 <br/>
@@ -87,7 +88,7 @@ cd Mokona
 ./gradlew :app:assembleDebug
 ```
 
-Para la versión firmada, crea `local.properties` con `keystore.file`, `keystore.password`, `keystore.alias` y `keystore.keyPassword`, y ejecuta `./gradlew :app:assembleRelease`.
+Para la versión firmada, crea `local.properties` con `keystore.file`, `keystore.password`, `keystore.alias` y `keystore.keyPassword`, y ejecuta `./gradlew :app:assembleRelease`. Salen dos APK, uno por arquitectura (`arm64-v8a`, el de casi todos los teléfonos actuales, y `armeabi-v7a`): los modelos de reconocimiento de texto en japonés, chino y coreano son librerías nativas y pesan unos 25 MB por arquitectura. El aviso de versiones nuevas elige solo el APK que corresponde al teléfono.
 
 <br/>
 
@@ -107,6 +108,7 @@ Mokona se distribuye bajo la [licencia Apache 2.0](LICENSE). Las librerías de t
 
 - **Pixiv** y sus servicios pertenecen a pixiv Inc. Mokona es un visor independiente sin afiliación ni respaldo. Cada obra pertenece a su artista.
 - La documentación de la API de la app de Pixiv viene de [pixivpy](https://github.com/upbit/pixivpy).
+- El reconocimiento de texto y la traducción del manga corren dentro del teléfono con [ML Kit](https://developers.google.com/ml-kit) de Google; los modelos de idioma se descargan una vez y no se envía ninguna página a ningún servidor.
 - **Mokona** es un personaje de **CLAMP** (*Magic Knight Rayearth*, *xxxHolic*, *Tsubasa*). El nombre es un homenaje; no existe afiliación con CLAMP ni con sus editoras.
 
 <br/>

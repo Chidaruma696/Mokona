@@ -8,6 +8,8 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.edit
 import androidx.core.os.LocaleListCompat
 import com.mokona.app.MokonaApp
+import com.mokona.app.data.AppLanguage
+import com.mokona.app.data.PageTranslator
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
@@ -39,6 +41,9 @@ object AppPrefs {
 	/** Keep Android Open notice on Home; hidden once the user dismisses it, can be shown again from Settings. */
 	var kaoBannerVisible by mutableStateOf(true)
 		private set
+	/** Script the manga translator reads by default. */
+	var ocrSource by mutableStateOf(PageTranslator.Source.JAPANESE)
+		private set
 
 	fun init(context: Context) {
 		val p = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -51,11 +56,14 @@ object AppPrefs {
 		gridColumns = p.getInt("grid_columns", 2)
 		kaoBannerVisible = p.getBoolean("kao_banner", true)
 		readerHorizontal = p.getBoolean("reader_horizontal", false)
+		ocrSource = runCatching { PageTranslator.Source.valueOf(p.getString("ocr_source", "JAPANESE")!!) }.getOrDefault(PageTranslator.Source.JAPANESE)
+		AppLanguage.current = language
 	}
 
 	private fun prefs() = MokonaApp.appContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
-	fun updateLanguage(value: String) { language = value; prefs().edit { putString("language", value) }; applyLanguage() }
+	fun updateLanguage(value: String) { language = value; AppLanguage.current = value; prefs().edit { putString("language", value) }; applyLanguage() }
+	fun updateOcrSource(value: PageTranslator.Source) { ocrSource = value; prefs().edit { putString("ocr_source", value.name) } }
 
 	/** Makes the app speak the chosen language; recreates the activity when it changes. */
 	fun applyLanguage() {
