@@ -214,4 +214,9 @@
 	<string name="size_normal">Normal</string>
 	<string name="size_large">Large</string>
 	<string name="size_huge">Huge</string>
+	<string name="translation_style">How the translation looks</string>
+	<string name="translation_style_summary">Notes: a thin numbered outline on each line and the translations listed beside the picture, original underneath. Over the picture: the text drawn on the bubble.</string>
+	<string name="style_notes">Notes</string>
+	<string name="style_overlay">Over the picture</string>
+	<string name="no_text_found">No text found on this page</string>
 </resources>

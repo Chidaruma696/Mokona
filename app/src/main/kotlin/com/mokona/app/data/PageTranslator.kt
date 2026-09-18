@@ -116,12 +116,15 @@ object PageTranslator {
 		val recognizer = TextRecognition.getClient(options)
 		try {
 			val text = recognizer.process(InputImage.fromBitmap(bitmap, 0)).await()
-			text.textBlocks.mapNotNull { block ->
+			val blocks = text.textBlocks.mapNotNull { block ->
 				val box = block.boundingBox ?: return@mapNotNull null
 				// Japanese and Chinese have no spaces between lines of a bubble; Korean does.
 				val joined = block.lines.joinToString(if (source == Source.KOREAN || source == Source.ENGLISH) " " else "") { it.text.trim() }
 				if (joined.isBlank()) null else box to joined
 			}
+			// Reading order: bands from top to bottom; inside a band, right to left for manga, left to right for English.
+			val band = (bitmap.height * 0.08f).coerceAtLeast(1f)
+			blocks.sortedWith(compareBy<Pair<Rect, String>> { (it.first.centerY() / band).toInt() }.thenBy { if (source == Source.ENGLISH) it.first.centerX() else -it.first.centerX() })
 		} finally {
 			recognizer.close()
 		}

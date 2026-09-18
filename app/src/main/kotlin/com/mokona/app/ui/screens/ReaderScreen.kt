@@ -74,13 +74,22 @@ fun ReaderScreen(illust: Illust, onClose: () -> Unit, onView: (List<String>, Int
 		}
 	}
 	fun translationOf(url: String) = if (translating) translations["$source:$url"] else null
+	// Which note is highlighted, per page (url → index).
+	var selected by remember { mutableStateOf<Pair<String, Int>?>(null) }
+	fun pick(url: String, i: Int) { selected = if (selected == url to i) null else url to i }
 	Box(Modifier.fillMaxSize().background(Color.Black)) {
 		if (horizontal) {
 			val pager = rememberPagerState(initialPage = current) { pages.size }
 			current = pager.currentPage
 			// reverseLayout puts page 1 on the right, so swiping leftwards goes back: manga order.
 			HorizontalPager(state = pager, reverseLayout = true, modifier = Modifier.fillMaxSize(), key = { pages[it] }) { page ->
-				ReaderPage(pages[page], fit = true, translation = translationOf(pages[page]))
+				val url = pages[page]
+				ReaderPage(url, fit = true, translation = translationOf(url), selected = selected?.takeIf { it.first == url }?.second, onSelect = { pick(url, it) })
+			}
+			val t = translationOf(pages.getOrNull(current) ?: "")
+			if (t != null && AppPrefs.translationNotes) {
+				val url = pages[current]
+				TranslationNotesSheet(t, selected?.takeIf { it.first == url }?.second, { pick(url, it) }, Modifier.align(Alignment.BottomCenter).padding(bottom = 88.dp))
 			}
 		} else {
 			var scale by remember { mutableFloatStateOf(1f) }
@@ -98,7 +107,10 @@ fun ReaderScreen(illust: Illust, onClose: () -> Unit, onView: (List<String>, Int
 				itemsIndexed(pages, key = { _, u -> u }) { index, url ->
 					val t = translationOf(url)
 					if (t != null) {
-						TranslatablePage(url, t, ContentScale.FillWidth, Modifier.fillMaxWidth().aspectRatio(t.width.toFloat() / t.height.coerceAtLeast(1)))
+						val sel = selected?.takeIf { it.first == url }?.second
+						TranslatablePage(url, t, ContentScale.FillWidth, Modifier.fillMaxWidth().aspectRatio(t.width.toFloat() / t.height.coerceAtLeast(1)), selected = sel, onSelect = { pick(url, it) })
+						// In the strip the notes sit right under their page: the manga reads like a translated script.
+						if (AppPrefs.translationNotes) TranslationNotes(t, sel, { pick(url, it) }, Modifier.background(Color(0xFF181818)).padding(vertical = 4.dp), dark = true)
 					} else {
 						AsyncImage(
 							model = url,
@@ -131,7 +143,7 @@ fun ReaderScreen(illust: Illust, onClose: () -> Unit, onView: (List<String>, Int
 }
 
 @Composable
-private fun ReaderPage(url: String, fit: Boolean, translation: PageTranslator.Result? = null) {
+private fun ReaderPage(url: String, fit: Boolean, translation: PageTranslator.Result? = null, selected: Int? = null, onSelect: (Int) -> Unit = {}) {
 	var scale by remember { mutableFloatStateOf(1f) }
 	var offset by remember { mutableStateOf(Offset.Zero) }
 	val state = rememberTransformableState { zoom, pan, _ ->
@@ -141,5 +153,6 @@ private fun ReaderPage(url: String, fit: Boolean, translation: PageTranslator.Re
 	TranslatablePage(
 		url, translation, if (fit) ContentScale.Fit else ContentScale.FillWidth,
 		Modifier.fillMaxSize().transformable(state).graphicsLayer { scaleX = scale; scaleY = scale; translationX = offset.x; translationY = offset.y },
+		selected = selected, onSelect = onSelect,
 	)
 }

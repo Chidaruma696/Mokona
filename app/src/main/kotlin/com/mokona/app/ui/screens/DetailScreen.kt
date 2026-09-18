@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -171,6 +172,8 @@ fun DetailScreen(
 			var source by remember { mutableStateOf(AppPrefs.ocrSource) }
 			var status by remember { mutableStateOf<PageTranslator.Status>(PageTranslator.Status.Idle) }
 			val translations = remember { mutableStateMapOf<String, PageTranslator.Result>() }
+			var selectedNote by remember { mutableStateOf<Int?>(null) }
+			LaunchedEffect(pager.currentPage) { selectedNote = null }
 			LaunchedEffect(translating, pager.currentPage, source) {
 				if (!translating) return@LaunchedEffect
 				val url = pages.getOrNull(pager.currentPage) ?: return@LaunchedEffect
@@ -196,7 +199,10 @@ fun DetailScreen(
 					HorizontalPager(state = pager, modifier = Modifier.fillMaxWidth()) { page ->
 						val t = if (translating) translations["$source:${pages[page]}"] else null
 						if (t != null) {
-							TranslatablePage(pages[page], t, ContentScale.Fit, Modifier.fillMaxWidth().aspectRatio(illust.aspectRatio.coerceIn(0.6f, 1.8f)))
+							TranslatablePage(
+								pages[page], t, ContentScale.Fit, Modifier.fillMaxWidth().aspectRatio(illust.aspectRatio.coerceIn(0.6f, 1.8f)),
+								selected = if (page == pager.currentPage) selectedNote else null, onSelect = { selectedNote = if (selectedNote == it) null else it },
+							)
 						} else {
 							AsyncImage(
 								model = pages[page],
@@ -213,6 +219,13 @@ fun DetailScreen(
 					if (translating) {
 						TranslationBar(source, onSource = { source = it; AppPrefs.updateOcrSource(it) }, status = status, modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 4.dp))
 					}
+				}
+			}
+			// The translated lines, right under the picture, like Danbooru's notes.
+			val currentTranslation = if (translating) translations["$source:${pages.getOrNull(pager.currentPage)}"] else null
+			if (currentTranslation != null && AppPrefs.translationNotes) {
+				Card(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+					TranslationNotes(currentTranslation, selectedNote, { selectedNote = if (selectedNote == it) null else it }, Modifier.padding(vertical = 6.dp))
 				}
 			}
 			Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -213,4 +213,9 @@
 	<string name="size_normal">Normal</string>
 	<string name="size_large">Grande</string>
 	<string name="size_huge">Enorme</string>
+	<string name="translation_style">Cómo se ve la traducción</string>
+	<string name="translation_style_summary">Notas: un recuadro fino numerado en cada línea y las traducciones en una lista junto a la imagen, con el original debajo. Sobre la imagen: el texto dibujado encima del globo.</string>
+	<string name="style_notes">Notas</string>
+	<string name="style_overlay">Sobre la imagen</string>
+	<string name="no_text_found">No se encontró texto en esta página</string>
 </resources>

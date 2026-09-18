@@ -50,6 +50,9 @@ object AppPrefs {
 	/** Size of the translated text, in sp. The box grows around it; the text never shrinks to fit. */
 	var translationTextSize by mutableStateOf(14)
 		private set
+	/** Notes like Danbooru's (outlined boxes on the picture, translations listed beside) or text over the picture. */
+	var translationNotes by mutableStateOf(true)
+		private set
 
 	fun init(context: Context) {
 		val p = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -65,6 +68,7 @@ object AppPrefs {
 		ocrSource = runCatching { PageTranslator.Source.valueOf(p.getString("ocr_source", "JAPANESE")!!) }.getOrDefault(PageTranslator.Source.JAPANESE)
 		translateOffline = p.getBoolean("translate_offline", false)
 		translationTextSize = p.getInt("translation_text_size", 14)
+		translationNotes = p.getBoolean("translation_notes", true)
 		AppLanguage.current = language
 		AppLanguage.offline = translateOffline
 	}
@@ -73,6 +77,7 @@ object AppPrefs {
 
 	fun updateLanguage(value: String) { language = value; AppLanguage.current = value; prefs().edit { putString("language", value) }; applyLanguage() }
 	fun updateOcrSource(value: PageTranslator.Source) { ocrSource = value; prefs().edit { putString("ocr_source", value.name) } }
+	fun updateTranslationNotes(value: Boolean) { translationNotes = value; prefs().edit { putBoolean("translation_notes", value) } }
 	fun updateTranslationTextSize(value: Int) { translationTextSize = value.coerceIn(8, 32); prefs().edit { putInt("translation_text_size", translationTextSize) } }
 	fun updateTranslateOffline(value: Boolean) { translateOffline = value; AppLanguage.offline = value; prefs().edit { putBoolean("translate_offline", value) } }
 

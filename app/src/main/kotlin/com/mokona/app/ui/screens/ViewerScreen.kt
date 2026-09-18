@@ -55,9 +55,17 @@ fun ViewerScreen(urls: List<String>, startIndex: Int, onClose: () -> Unit) {
 		runCatching { translations["$source:$url"] = PageTranslator.translate(context, url, source) { status = it } }
 			.onFailure { status = PageTranslator.Status.Failed(it.message ?: it.javaClass.simpleName) }
 	}
+	var selected by remember { mutableStateOf<Pair<String, Int>?>(null) }
+	fun pick(url: String, i: Int) { selected = if (selected == url to i) null else url to i }
 	Box(Modifier.fillMaxSize().background(Color.Black)) {
 		HorizontalPager(state = pager, modifier = Modifier.fillMaxSize(), key = { urls[it] }) { page ->
-			ZoomableImage(urls[page], if (translating) translations["$source:${urls[page]}"] else null)
+			val url = urls[page]
+			ZoomableImage(url, if (translating) translations["$source:$url"] else null, selected?.takeIf { it.first == url }?.second) { pick(url, it) }
+		}
+		val currentUrl = urls.getOrNull(pager.currentPage)
+		val t = if (translating && currentUrl != null) translations["$source:$currentUrl"] else null
+		if (t != null && currentUrl != null && AppPrefs.translationNotes) {
+			TranslationNotesSheet(t, selected?.takeIf { it.first == currentUrl }?.second, { pick(currentUrl, it) }, Modifier.align(Alignment.BottomCenter).padding(bottom = 64.dp))
 		}
 		Box(Modifier.safeDrawingPadding().fillMaxSize()) {
 			IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopStart).padding(4.dp)) {
@@ -77,7 +85,7 @@ fun ViewerScreen(urls: List<String>, startIndex: Int, onClose: () -> Unit) {
 }
 
 @Composable
-private fun ZoomableImage(url: String, translation: PageTranslator.Result? = null) {
+private fun ZoomableImage(url: String, translation: PageTranslator.Result? = null, selected: Int? = null, onSelect: (Int) -> Unit = {}) {
 	var scale by remember { mutableFloatStateOf(1f) }
 	var offset by remember { mutableStateOf(Offset.Zero) }
 	val state = rememberTransformableState { zoom, pan, _ ->
@@ -95,5 +103,6 @@ private fun ZoomableImage(url: String, translation: PageTranslator.Result? = nul
 			}
 			.transformable(state)
 			.graphicsLayer { scaleX = scale; scaleY = scale; translationX = offset.x; translationY = offset.y },
+		selected = selected, onSelect = onSelect,
 	)
 }
