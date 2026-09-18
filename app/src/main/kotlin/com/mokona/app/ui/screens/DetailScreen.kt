@@ -63,6 +63,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.mokona.app.R
+import com.mokona.app.data.PageTranslator
+import androidx.compose.runtime.mutableStateMapOf
 import com.mokona.app.data.Illust
 import com.mokona.app.data.PixivUser
 import com.mokona.app.data.Tag
@@ -159,6 +161,18 @@ fun DetailScreen(
 			val pages = illust.largeUrls
 			val pager = rememberPagerState { pages.size }
 			val player = vm.ugoira
+			// Any picture, one button: 訳 reads and translates the page on screen right here.
+			var translating by remember { mutableStateOf(false) }
+			var source by remember { mutableStateOf(AppPrefs.ocrSource) }
+			var status by remember { mutableStateOf<PageTranslator.Status>(PageTranslator.Status.Idle) }
+			val translations = remember { mutableStateMapOf<String, PageTranslator.Result>() }
+			LaunchedEffect(translating, pager.currentPage, source) {
+				if (!translating) return@LaunchedEffect
+				val url = pages.getOrNull(pager.currentPage) ?: return@LaunchedEffect
+				if (translations.containsKey("$source:$url")) return@LaunchedEffect
+				runCatching { translations["$source:$url"] = PageTranslator.translate(context, url, source) { status = it } }
+					.onFailure { status = PageTranslator.Status.Failed(it.message ?: it.javaClass.simpleName) }
+			}
 			Box(Modifier.fillMaxWidth().background(Color.Black)) {
 				if (illust.isAnimated && player != null) {
 					// A ugoira plays its frames in place; tap pauses and resumes.
@@ -175,14 +189,25 @@ fun DetailScreen(
 					if (bmp != null) LinearProgressIndicator(progress = { player.progress }, modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter))
 				} else {
 					HorizontalPager(state = pager, modifier = Modifier.fillMaxWidth()) { page ->
-						AsyncImage(
-							model = pages[page],
-							contentDescription = illust.title,
-							contentScale = ContentScale.Fit,
-							modifier = Modifier.fillMaxWidth().aspectRatio(illust.aspectRatio.coerceIn(0.6f, 1.8f)).combinedClickable(onClick = { onView(pages, page) }),
-						)
+						val t = if (translating) translations["$source:${pages[page]}"] else null
+						if (t != null) {
+							TranslatablePage(pages[page], t, ContentScale.Fit, Modifier.fillMaxWidth().aspectRatio(illust.aspectRatio.coerceIn(0.6f, 1.8f)))
+						} else {
+							AsyncImage(
+								model = pages[page],
+								contentDescription = illust.title,
+								contentScale = ContentScale.Fit,
+								modifier = Modifier.fillMaxWidth().aspectRatio(illust.aspectRatio.coerceIn(0.6f, 1.8f)).combinedClickable(onClick = { onView(pages, page) }),
+							)
+						}
 					}
 					if (pages.size > 1) Box(Modifier.align(Alignment.BottomEnd).padding(8.dp)) { Badge("${pager.currentPage + 1}/${pages.size}") }
+					IconButton(onClick = { translating = !translating; if (!translating) status = PageTranslator.Status.Idle }, modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)) {
+						Text("訳", color = if (translating) Color(0xFFFFD54F) else Color.White, style = MaterialTheme.typography.titleMedium)
+					}
+					if (translating) {
+						TranslationBar(source, onSource = { source = it; AppPrefs.updateOcrSource(it) }, status = status, modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 4.dp))
+					}
 				}
 			}
 			Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

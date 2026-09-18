@@ -139,7 +139,7 @@
 	<string name="translate_translating">Translating…</string>
 	<string name="reader_section">Reader</string>
 	<string name="ocr_source">Language the translator reads</string>
-	<string name="ocr_source_summary">The 訳 button in the reader reads the page on the phone and translates each bubble into the app\'s language. Tap a bubble to see the original.</string>
+	<string name="ocr_source_summary">The 訳 button on any picture reads the page on the phone and translates each bubble into the app\'s language. Tap a bubble to see the original.</string>
 	<!-- Wallpaper -->
 	<string name="wallpaper">Wallpaper</string>
 	<string name="wallpaper_enabled">Change the wallpaper by itself</string>
