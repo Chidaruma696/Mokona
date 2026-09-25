@@ -23,6 +23,8 @@
 
 *Sin anuncios · sin rastreo · Material You · negro AMOLED · R-18 apagado por defecto · en inglés y español*
 
+*Si la release no abre en tu teléfono, avísame el modelo en una issue.*
+
 </div>
 
 ---

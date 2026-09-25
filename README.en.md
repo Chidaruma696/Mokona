@@ -23,6 +23,8 @@
 
 *No ads · no tracking · Material You · AMOLED black · R-18 off by default · in English and Spanish*
 
+*If the release does not open on your phone, tell me the model in an issue.*
+
 </div>
 
 ---
